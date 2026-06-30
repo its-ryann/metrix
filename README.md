@@ -1,62 +1,65 @@
 # Metrix 📊🛡️
 
-An open-source, enterprise-grade data pipeline, telemetry engine, and telemetry visualization ecosystem. Metrix is built to securely ingest cross-platform analytical metrics, process them via a high-performance Go microservice backend, and orchestrate deployments using modern DevSecOps and cloud-native practices.
+Metrix is an open-source, full-stack analytics platform and secure telemetry pipeline built specifically for content creators, influencers, and social media managers. It allows users to safely consolidate, track, and visualize their cross-platform performance metrics in one unified space without compromising data privacy or leaking sensitive account tokens.
 
-The core philosophy of Metrix is **Security-by-Design**. It serves as an active implementation sandbox for combining automated delivery pipelines (CI/CD) with aggressive application-layer security and infrastructure shielding.
+Behind the clean user interface lies a high-performance, multi-tenant cloud architecture engineered from the ground up with strict DevSecOps automation and security-by-design standards.
 
 ---
 
 ## 🏗️ Architecture Overview
 
-Metrix is decoupled into modular components to ensure high availability, privilege isolation, and strict horizontal scaling:
+Metrix is decoupled into modular microservices to ensure secure data isolation, fault tolerance, and horizontal scaling:
 
-*   **Data Pipeline Layer (Python / Bash):** Lightweight automation workers that interface with platform telemetry interfaces, handling data ingestion, error logging, and system health checks.
-*   **Backend API Service (Go / Golang):** A high-performance, concurrent microservice running on a clean REST architecture, serving structured metrics to downstream consumers.
-*   **Infrastructure & Orchestration Layer (Docker / Kubernetes):** Declarative infrastructure configurations optimized for containerized isolation and local Kubernetes orchestration environments.
+*   **User Interface (HTML/CSS/JS):** A clean, responsive, creator-centric web dashboard displaying scannable engagement charts and audience growth metrics.
+*   **Backend API Service (Go / Golang):** A concurrent, high-performance REST API that manages secure creator session authentication (OAuth/JWT) and multi-tenant database isolation layers.
+*   **Data Ingestion Workers (Python / Bash):** Background automation scripts tasked with connecting to creator platform interfaces, handling API throttling, and securely feeding metrics back to the storage layer.
+*   **Infrastructure & Orchestration Layer (Docker / Kubernetes):** Declarative runtime environments optimized for secure container isolation and auto-scaling during high-traffic traffic spikes.
 
 ---
 
 ## 🛠️ Tech Stack & Ecosystem
 
-*   **Languages:** Go (Golang), Python, Bash/Shell Scripting
+*   **Languages:** Go (Golang), Python, Bash/Shell Scripting, JavaScript
 *   **Containerization & Orchestration:** Docker, Docker Compose, Kubernetes (K8s / Minikube)
 *   **CI/CD & Automation:** GitHub Actions Workflow Engine
 *   **Security & Telemetry Scanners:** Trivy (Container SAST), Gitleaks (Secret Detection)
-*   **Database:** PostgreSQL (Relational Metrics Storage)
+*   **Database:** PostgreSQL (Relational Multi-Tenant Storage)
 
 ---
 
 ## 🔒 DevSecOps & Security Hardening (Non-Negotiables)
 
-Metrix enforces a strict corporate security baseline across all deployment boundaries:
+Metrix enforces a strict corporate security baseline across all deployment boundaries to guarantee user safety:
 
+*   **Cryptographic Data Isolation:** Because Metrix hosts multiple users, the database logic enforces absolute multi-tenant walls. One creator can never manipulate or query raw data belonging to another account.
 *   **Principle of Least Privilege (PLP):** All container images are built using multi-stage execution and explicitly drop privileges to a low-authorization system `appuser`. Containers strictly forbid running application binaries as `root`.
 *   **Automated Guardrails (Shift-Left Security):** The automated CI/CD pipeline runs security scans on every single commit. The build is explicitly configured to self-terminate if dependencies introduce vulnerability risks or if credentials leak into version control.
-*   **Zero-Trust Secret Isolation:** Critical tokens, API keys, and database passwords are completely decoupled from the codebase, utilizing runtime environment injections and cryptographically secured repository variables.
+*   **Zero-Trust Secret Isolation:** Critical platform tokens, API keys, and database passwords are completely decoupled from the codebase, utilizing runtime environment injections and cryptographically secured repository variables.
 
 ---
 
 ## 🚀 Roadmap & Project Milestones
 
-### Phase 1: Core Backend & Mock Engine 🔄
-- [ ] Initialize modular workspace architecture (`go mod`, `requirements.txt`).
-- [ ] Establish low-level REST router endpoints in Go.
-- [ ] Build baseline configuration for local container execution via Docker Compose.
+### Phase 1: Multi-Tenant Backend & Mock Data 🔄
+- [ ] Initialize modular workspace architecture (`api-backend`, `frontend-dashboard`, `data-pipeline`).
+- [ ] Design the relational PostgreSQL schema supporting multiple isolated creator accounts.
+- [ ] Establish Go REST API endpoints for user registration, JWT authentication, and mock metric generation.
+- [ ] Build baseline multi-container configurations for local execution via Docker Compose.
 
-### Phase 2: Pipeline Ingestion & Secure CI/CD 🛡️
-- [ ] Develop Python telemetry scraping scripts with structural error catching.
-- [ ] Build GitHub Actions pipeline to automate testing and code linting.
-- [ ] Integrate automated `Trivy` and `Gitleaks` vulnerability scanners into code push hooks.
+### Phase 2: Frontend Dashboard & Pipeline Ingestion 🎨
+- [ ] Build a responsive web interface with data-driven graphs consuming the Go API payloads.
+- [ ] Develop Python telemetry scraping scripts with structural error catching to simulate platform data retrieval.
+- [ ] Integrate background cron workers to update user statistics at set intervals.
 
-### Phase 3: Cloud-Native Orchestration ☁️
+### Phase 3: Secure CI/CD & Guardrails 🛡️
+- [ ] Build GitHub Actions pipelines to automate testing, code linting, and formatting.
+- [ ] Integrate automated `Trivy` and `Gitleaks` vulnerability scanners into repository code push hooks.
+- [ ] Perform explicit permission testing on Go route middleware to guarantee multi-tenant token validation.
+
+### Phase 4: Cloud-Native Scaling & Security Audit ☁️
 - [ ] Migrate single-host configs into declarative Kubernetes manifests (`deployment.yml`, `service.yml`).
-- [ ] Implement strict `securityContext` definitions inside Kubernetes pods.
-- [ ] Establish centralized logging output channels for real-time traffic inspections.
-
-### Phase 4: Offensive Penetration Auditing ⚔️
-- [ ] Perform network entry-point mapping utilizing `Nmap`.
-- [ ] Execute application-layer attack simulations via `Burp Suite` to audit inputs and sanitize boundary endpoints.
-- [ ] Final architecture sign-off and validation reporting.
+- [ ] Implement strict `securityContext` definitions inside Kubernetes pods to restrict host access.
+- [ ] Execute application-layer attack simulations via `Burp Suite` and network topology analysis with `Nmap` to confirm perimeter hardening.
 
 ---
 
