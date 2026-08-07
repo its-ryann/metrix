@@ -36,6 +36,8 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
+	workspaceID := r.URL.Query().Get("workspace_id")
+
 	res := SummaryResponse{
 		TotalReach:     125400,
 		ReachDelta:     12.5,
@@ -45,7 +47,14 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 		GrowthDelta:    5.2,
 	}
 
-	json.NewEncoder(w).Encode(res)
+	// Vary mock data for "Agency" workspace to show multi-tenancy
+	if workspaceID == "workspace-agency" {
+		res.TotalReach = 2840500
+		res.FollowerGrowth = 15200
+		res.ReachDelta = 18.2
+	}
+
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +76,7 @@ func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
 		Data:     data,
 	}
 
-	json.NewEncoder(w).Encode(res)
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 func GetTopContent(w http.ResponseWriter, r *http.Request) {
@@ -80,5 +89,5 @@ func GetTopContent(w http.ResponseWriter, r *http.Request) {
 		{Title: "Metrix Alpha Reveal!", Platform: "tiktok", Engagement: 12.1, Reach: 85000},
 	}
 
-	json.NewEncoder(w).Encode(res)
+	_ = json.NewEncoder(w).Encode(res)
 }

@@ -21,6 +21,10 @@ func main() {
 	mux.HandleFunc("/api/v1/metrics/timeseries", handler.GetTimeSeries)
 	mux.HandleFunc("/api/v1/metrics/top-content", handler.GetTopContent)
 
+	// Platform & Audience Endpoints
+	mux.HandleFunc("/api/v1/platform-accounts", handler.GetPlatformAccounts)
+	mux.HandleFunc("/api/v1/audience/insights", handler.GetAudienceInsights)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
