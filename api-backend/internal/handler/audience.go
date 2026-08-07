@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// TODO: mocked until real audience source exists
 type AudienceInsight struct {
 	Category string  `json:"category"`
 	Label    string  `json:"label"`
@@ -20,6 +21,7 @@ func GetAudienceInsights(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
+	// TODO: mocked until real audience source exists
 	res := AudienceResponse{
 		Demographics: []AudienceInsight{
 			{Category: "age", Label: "18-24", Value: 25.0},

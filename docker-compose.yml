@@ -1,10 +1,32 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: metrix
+      POSTGRES_PASSWORD: metrix_password
+      POSTGRES_DB: metrix
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metrix -d metrix"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api-backend:
     build: ./api-backend
     environment:
       PORT: "8080"
+      DATABASE_URL: "postgres://metrix:metrix_password@postgres:5432/metrix?sslmode=disable"
+      JWT_SECRET: "metrix-super-secret-jwt-key-2026"
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 10s
@@ -21,6 +43,13 @@ services:
 
   data-pipeline:
     build: ./data-pipeline
+    environment:
+      DATABASE_URL: "postgres://metrix:metrix_password@postgres:5432/metrix?sslmode=disable"
     depends_on:
+      postgres:
+        condition: service_healthy
       api-backend:
         condition: service_healthy
+
+volumes:
+  postgres-data:

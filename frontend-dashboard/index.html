@@ -11,13 +11,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- Login Overlay -->
+    <!-- Login / Register Overlay -->
     <div id="login-overlay" class="overlay">
         <div class="login-card">
             <div class="logo">Metrix 📊</div>
-            <h2>Sign In</h2>
-            <p>Enter your credentials to access your dashboard</p>
+            <h2 id="auth-title">Sign In</h2>
+            <p id="auth-subtitle">Enter your credentials to access your dashboard</p>
             <form id="login-form">
+                <div class="input-group hidden" id="name-group">
+                    <label>Full Name</label>
+                    <input type="text" id="name" placeholder="Metrix Creator">
+                </div>
                 <div class="input-group">
                     <label>Email Address</label>
                     <input type="email" id="email" placeholder="creator@metrix.com" required value="creator@metrix.com">
@@ -26,8 +30,11 @@
                     <label>Password</label>
                     <input type="password" id="password" placeholder="••••••••" required value="password123">
                 </div>
-                <button type="submit">Access Dashboard</button>
+                <button type="submit" id="auth-submit-btn">Access Dashboard</button>
             </form>
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" id="auth-toggle-btn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 0.9rem; text-decoration: underline;">Need an account? Register here</button>
+            </div>
         </div>
     </div>
 
@@ -70,8 +77,7 @@
                     <div class="filter-group">
                         <label>Workspace</label>
                         <select id="workspace-select">
-                            <option value="workspace-solo">Solo Creator (Personal)</option>
-                            <option value="workspace-agency">Agency Client (Global)</option>
+                            <option value="workspace-solo">Personal Workspace (MVP)</option>
                         </select>
                     </div>
                     <div class="filter-group">
