@@ -5,14 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metrix Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <main class="container">
-        <h1>Metrix Status</h1>
-        <div class="card">
-            <p>API Health: <span id="health-status">Checking...</span></p>
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="overlay">
+        <div class="login-card">
+            <h2>Welcome to Metrix</h2>
+            <form id="login-form">
+                <input type="email" id="email" placeholder="Email" required value="creator@metrix.com">
+                <input type="password" id="password" placeholder="Password" required value="password123">
+                <button type="submit">Sign In</button>
+            </form>
         </div>
-    </main>
+    </div>
+
+    <div class="app-container hidden" id="app-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Metrix </div>
+            <nav>
+                <ul>
+                    <li class="active"><a href="#">Overview</a></li>
+                    <li><a href="#">Platforms</a></li>
+                    <li><a href="#">Content</a></li>
+                    <li><a href="#">Audience</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <h1>Dashboard Overview</h1>
+                <div class="header-actions">
+                    <span id="user-greeting">Welcome, Creator</span>
+                    <span class="status-indicator">API: <span id="health-status">Checking...</span></span>
+                </div>
+            </header>
+
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <h3>Total Reach</h3>
+                    <div class="value" id="kpi-reach">--</div>
+                    <div class="delta positive" id="kpi-reach-delta">--</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Engagement Rate</h3>
+                    <div class="value" id="kpi-engagement">--</div>
+                    <div class="delta negative" id="kpi-engagement-delta">--</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Follower Growth</h3>
+                    <div class="value" id="kpi-growth">--</div>
+                    <div class="delta positive" id="kpi-growth-delta">--</div>
+                </div>
+            </section>
+
+            <section class="charts-section">
+                <div class="chart-container card">
+                    <h3>Reach Over Time</h3>
+                    <canvas id="reachChart"></canvas>
+                </div>
+                <div class="chart-container card">
+                    <h3>Platform Split</h3>
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </section>
+
+            <section class="content-section card">
+                <h3>Top Performing Content</h3>
+                <table id="content-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Platform</th>
+                            <th>Engagement</th>
+                            <th>Reach</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
