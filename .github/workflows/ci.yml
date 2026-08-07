@@ -39,6 +39,7 @@ jobs:
         with:
           version: latest
           working-directory: api-backend
+          install-mode: goinstall
       - name: Test
         run: go test -v ./...
 
