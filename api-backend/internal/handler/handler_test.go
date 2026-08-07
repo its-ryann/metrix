@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -15,9 +14,9 @@ func TestHealthCheck(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HealthCheck)
+	h := http.HandlerFunc(HealthCheck)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -33,79 +32,18 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
-func TestLogin(t *testing.T) {
-	body := `{"email": "test@metrix.com", "password": "password123"}`
-	req, err := http.NewRequest("POST", "/api/v1/auth/login", strings.NewReader(body))
+func TestProtectedEndpointWithoutAuth(t *testing.T) {
+	req, err := http.NewRequest("GET", "/api/v1/metrics/summary", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(Login)
+	h := AuthMiddleware(GetSummary)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	var res AuthResponse
-	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
-		t.Fatal(err)
-	}
-
-	if res.User.Email != "test@metrix.com" {
-		t.Errorf("expected email test@metrix.com, got %v", res.User.Email)
-	}
-}
-
-func TestGetSummary(t *testing.T) {
-	req, err := http.NewRequest("GET", "/api/v1/metrics/summary?workspace_id=workspace-agency", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(GetSummary)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	var res SummaryResponse
-	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify dynamic workspace simulation
-	if res.TotalReach != 2840500 {
-		t.Errorf("expected TotalReach for agency to be 2840500, got %v", res.TotalReach)
-	}
-}
-
-func TestGetPlatformAccounts(t *testing.T) {
-	req, err := http.NewRequest("GET", "/api/v1/platform-accounts", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(GetPlatformAccounts)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	var accounts []PlatformAccount
-	if err := json.NewDecoder(rr.Body).Decode(&accounts); err != nil {
-		t.Fatal(err)
-	}
-
-	if len(accounts) == 0 {
-		t.Error("expected non-empty platform accounts list")
+	if status := rr.Code; status != http.StatusUnauthorized {
+		t.Errorf("expected status %v for unauthenticated request, got %v", http.StatusUnauthorized, status)
 	}
 }

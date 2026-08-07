@@ -5,11 +5,11 @@ const state = {
     user: null,
     token: localStorage.getItem("metrix_token"),
     currentView: "overview",
-    workspace: "workspace-solo",
     platform: "all",
     timeframe: "7d",
     charts: {},
-    loading: false
+    loading: false,
+    isRegistering: false
 };
 
 // DOM Elements
@@ -20,9 +20,14 @@ const loginForm = document.getElementById("login-form");
 const logoutBtn = document.getElementById("logout-btn");
 const healthStatusEl = document.getElementById("health-status");
 const navItems = document.querySelectorAll("#nav-list li");
-const workspaceSelect = document.getElementById("workspace-select");
 const platformSelect = document.getElementById("platform-select");
 const timeframeSelect = document.getElementById("timeframe-select");
+const authTitle = document.getElementById("auth-title");
+const authSubtitle = document.getElementById("auth-subtitle");
+const authSubmitBtn = document.getElementById("auth-submit-btn");
+const authToggleBtn = document.getElementById("auth-toggle-btn");
+const nameGroup = document.getElementById("name-group");
+const userGreeting = document.getElementById("user-greeting");
 
 // Initialization
 async function init() {
@@ -45,10 +50,6 @@ function setupEventListeners() {
     });
 
     // Filters
-    workspaceSelect.addEventListener("change", (e) => {
-        state.workspace = e.target.value;
-        loadDashboardData();
-    });
     platformSelect.addEventListener("change", (e) => {
         state.platform = e.target.value;
         loadDashboardData();
@@ -59,8 +60,26 @@ function setupEventListeners() {
     });
 
     // Auth
-    loginForm.addEventListener("submit", handleLogin);
+    loginForm.addEventListener("submit", handleAuthSubmit);
     logoutBtn.addEventListener("click", handleLogout);
+    authToggleBtn.addEventListener("click", toggleAuthMode);
+}
+
+function toggleAuthMode() {
+    state.isRegistering = !state.isRegistering;
+    if (state.isRegistering) {
+        authTitle.textContent = "Create Account";
+        authSubtitle.textContent = "Sign up to start tracking your creator metrics";
+        authSubmitBtn.textContent = "Create Account";
+        authToggleBtn.textContent = "Already have an account? Sign In";
+        nameGroup.classList.remove("hidden");
+    } else {
+        authTitle.textContent = "Sign In";
+        authSubtitle.textContent = "Enter your credentials to access your dashboard";
+        authSubmitBtn.textContent = "Access Dashboard";
+        authToggleBtn.textContent = "Need an account? Register here";
+        nameGroup.classList.add("hidden");
+    }
 }
 
 function showLogin() {
@@ -71,6 +90,9 @@ function showLogin() {
 function showApp() {
     loginOverlay.classList.add("hidden");
     appContent.classList.remove("hidden");
+    if (state.user && state.user.name) {
+        userGreeting.textContent = `Welcome back, ${state.user.name}`;
+    }
 }
 
 function setLoading(isLoading) {
@@ -79,26 +101,52 @@ function setLoading(isLoading) {
     else loadingOverlay.classList.add("hidden");
 }
 
-async function handleLogin(e) {
+async function fetchWithAuth(url, options = {}) {
+    if (!options.headers) {
+        options.headers = {};
+    }
+    if (state.token) {
+        options.headers["Authorization"] = `Bearer ${state.token}`;
+    }
+    
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+        handleLogout();
+        throw new Error("Unauthorized access - logging out.");
+    }
+    return res;
+}
+
+async function handleAuthSubmit(e) {
     e.preventDefault();
     setLoading(true);
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const name = document.getElementById("name").value;
+
+    const endpoint = state.isRegistering ? `${API_BASE}/api/v1/auth/register` : `${API_BASE}/api/v1/auth/login`;
+    const payload = state.isRegistering ? { email, password, name } : { email, password };
 
     try {
-        const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify(payload)
         });
+
         const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || "Authentication failed.");
+            return;
+        }
+
         state.token = data.token;
         state.user = data.user;
         localStorage.setItem("metrix_token", data.token);
         showApp();
         loadDashboardData();
     } catch (err) {
-        alert("Login failed. Check backend.");
+        alert("Authentication error. Check backend connection.");
     } finally {
         setLoading(false);
     }
@@ -106,6 +154,7 @@ async function handleLogin(e) {
 
 function handleLogout() {
     state.token = null;
+    state.user = null;
     localStorage.removeItem("metrix_token");
     showLogin();
 }
@@ -140,7 +189,7 @@ function switchView(viewId) {
 
 // Data Loading
 async function loadDashboardData() {
-    const queryParams = `?workspace_id=${state.workspace}&platform=${state.platform}&timeframe=${state.timeframe}`;
+    const queryParams = `?platform=${state.platform}&timeframe=${state.timeframe}`;
     
     if (state.currentView === "overview") {
         fetchSummary(queryParams);
@@ -156,7 +205,7 @@ async function loadDashboardData() {
 
 async function fetchSummary(params) {
     try {
-        const res = await fetch(`${API_BASE}/api/v1/metrics/summary${params}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/summary${params}`);
         const data = await res.json();
         
         updateKPI("reach", data.total_reach, data.reach_delta);
@@ -176,7 +225,7 @@ function updateKPI(id, value, delta, isPercent = false) {
 
 async function fetchTimeSeries(params) {
     try {
-        const res = await fetch(`${API_BASE}/api/v1/metrics/timeseries${params}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/timeseries${params}`);
         const data = await res.json();
         renderReachChart(data.data);
     } catch (err) { console.error(err); }
@@ -187,7 +236,7 @@ async function fetchPlatforms(params) {
     const list = document.getElementById("platform-list");
     list.innerHTML = `<div class="spinner"></div>`;
     try {
-        const res = await fetch(`${API_BASE}/api/v1/platform-accounts${params}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts${params}`);
         const data = await res.json();
         list.innerHTML = data.map(acc => `
             <div class="platform-card">
@@ -195,7 +244,7 @@ async function fetchPlatforms(params) {
                     <div class="platform-icon ${acc.platform.substring(0,2)}">${acc.platform[0].toUpperCase()}</div>
                     <span class="status">${acc.status.replace('_', ' ')}</span>
                 </div>
-                <h4>${acc.displayName}</h4>
+                <h4>${acc.display_name}</h4>
                 <p>${acc.platform.toUpperCase()}</p>
                 <button class="btn-connect">Manage Connection</button>
             </div>
@@ -206,7 +255,7 @@ async function fetchPlatforms(params) {
 async function fetchTopContent(params) {
     const tbody = document.querySelector("#content-table tbody");
     try {
-        const res = await fetch(`${API_BASE}/api/v1/metrics/top-content${params}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/top-content${params}`);
         const data = await res.json();
         tbody.innerHTML = data.map(item => `
             <tr>
@@ -221,7 +270,7 @@ async function fetchTopContent(params) {
 
 async function fetchAudience(params) {
     try {
-        const res = await fetch(`${API_BASE}/api/v1/audience/insights${params}`);
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/audience/insights${params}`);
         const data = await res.json();
         renderAudienceCharts(data);
     } catch (err) { console.error(err); }
