@@ -33,5 +33,5 @@ func GetPlatformAccounts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(accounts)
+	_ = json.NewEncoder(w).Encode(accounts)
 }
