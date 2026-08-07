@@ -1,4 +1,8 @@
-const API_URL = "http://localhost:8080/health";
+// Locally, frontend and backend run as separate containers, so hit localhost:8080 directly.
+// In production, Vercel rewrites route /health to the backend service on the same origin.
+const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = isLocal ? "http://localhost:8080" : "";
+const API_URL = `${API_BASE}/health`;
 
 async function checkHealth() {
     const statusEl = document.getElementById("health-status");

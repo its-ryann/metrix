@@ -1,0 +1,16 @@
+{
+  "services": {
+    "frontend": {
+      "root": "frontend-dashboard/",
+      "entrypoint": "Dockerfile"
+    },
+    "backend": {
+      "root": "api-backend/",
+      "entrypoint": "Dockerfile"
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
+}
