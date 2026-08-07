@@ -5,10 +5,22 @@ services:
       PORT: "8080"
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   frontend-dashboard:
     build: ./frontend-dashboard
     ports:
       - "3000:80"
     depends_on:
-      - api-backend
+      api-backend:
+        condition: service_healthy
+
+  data-pipeline:
+    build: ./data-pipeline
+    depends_on:
+      api-backend:
+        condition: service_healthy

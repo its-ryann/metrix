@@ -36,6 +36,8 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
+	workspaceID := r.URL.Query().Get("workspace_id")
+
 	res := SummaryResponse{
 		TotalReach:     125400,
 		ReachDelta:     12.5,
@@ -43,6 +45,13 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 		EngageDelta:    -0.8,
 		FollowerGrowth: 850,
 		GrowthDelta:    5.2,
+	}
+
+	// Vary mock data for "Agency" workspace to show multi-tenancy
+	if workspaceID == "workspace-agency" {
+		res.TotalReach = 2840500
+		res.FollowerGrowth = 15200
+		res.ReachDelta = 18.2
 	}
 
 	json.NewEncoder(w).Encode(res)
