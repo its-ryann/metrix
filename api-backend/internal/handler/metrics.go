@@ -54,7 +54,7 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 		res.ReachDelta = 18.2
 	}
 
-	json.NewEncoder(w).Encode(res)
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
 		Data:     data,
 	}
 
-	json.NewEncoder(w).Encode(res)
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 func GetTopContent(w http.ResponseWriter, r *http.Request) {
@@ -89,5 +89,5 @@ func GetTopContent(w http.ResponseWriter, r *http.Request) {
 		{Title: "Metrix Alpha Reveal!", Platform: "tiktok", Engagement: 12.1, Reach: 85000},
 	}
 
-	json.NewEncoder(w).Encode(res)
+	_ = json.NewEncoder(w).Encode(res)
 }
