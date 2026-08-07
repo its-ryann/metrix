@@ -3,7 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"time"
+
+	"metrix/api-backend/internal/db"
 )
 
 type SummaryResponse struct {
@@ -15,43 +16,41 @@ type SummaryResponse struct {
 	GrowthDelta    float64 `json:"growth_delta"`
 }
 
-type TimeSeriesPoint struct {
-	Date  string `json:"date"`
-	Value int    `json:"value"`
-}
-
 type TimeSeriesResponse struct {
-	Platform string            `json:"platform"`
-	Data     []TimeSeriesPoint `json:"data"`
+	Platform string               `json:"platform"`
+	Data     []db.TimeSeriesPoint `json:"data"`
 }
 
 type ContentItem struct {
-	Title      string `json:"title"`
-	Platform   string `json:"platform"`
+	Title      string  `json:"title"`
+	Platform   string  `json:"platform"`
 	Engagement float64 `json:"engagement"`
-	Reach      int    `json:"reach"`
+	Reach      int     `json:"reach"`
 }
 
 func GetSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	workspaceID := r.URL.Query().Get("workspace_id")
-
-	res := SummaryResponse{
-		TotalReach:     125400,
-		ReachDelta:     12.5,
-		AvgEngagement:  4.2,
-		EngageDelta:    -0.8,
-		FollowerGrowth: 850,
-		GrowthDelta:    5.2,
+	userID := GetUserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
+		return
 	}
 
-	// Vary mock data for "Agency" workspace to show multi-tenancy
-	if workspaceID == "workspace-agency" {
-		res.TotalReach = 2840500
-		res.FollowerGrowth = 15200
-		res.ReachDelta = 18.2
+	ms, err := db.GetSummaryForUser(r.Context(), userID)
+	if err != nil {
+		http.Error(w, `{"error":"Failed to fetch metrics summary"}`, http.StatusInternalServerError)
+		return
+	}
+
+	res := SummaryResponse{
+		TotalReach:     ms.TotalReach,
+		ReachDelta:     12.5,
+		AvgEngagement:  ms.AvgEngagement,
+		EngageDelta:    2.4,
+		FollowerGrowth: ms.FollowerGrowth,
+		GrowthDelta:    5.1,
 	}
 
 	_ = json.NewEncoder(w).Encode(res)
@@ -61,19 +60,23 @@ func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	now := time.Now()
-	data := make([]TimeSeriesPoint, 7)
-	for i := 0; i < 7; i++ {
-		date := now.AddDate(0, 0, -6+i).Format("2006-01-02")
-		data[i] = TimeSeriesPoint{
-			Date:  date,
-			Value: 1000 + (i * 150) + (time.Now().Nanosecond() % 100),
-		}
+	userID := GetUserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	platform := r.URL.Query().Get("platform")
+
+	points, err := db.GetTimeSeriesForUser(r.Context(), userID, platform)
+	if err != nil {
+		http.Error(w, `{"error":"Failed to fetch timeseries data"}`, http.StatusInternalServerError)
+		return
 	}
 
 	res := TimeSeriesResponse{
-		Platform: "all",
-		Data:     data,
+		Platform: platform,
+		Data:     points,
 	}
 
 	_ = json.NewEncoder(w).Encode(res)
@@ -82,6 +85,12 @@ func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
 func GetTopContent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+
+	userID := GetUserIDFromContext(r.Context())
+	if userID == "" {
+		http.Error(w, `{"error":"Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 
 	res := []ContentItem{
 		{Title: "How to Grow on YT in 2026", Platform: "youtube", Engagement: 8.5, Reach: 45000},
