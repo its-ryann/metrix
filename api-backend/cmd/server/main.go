@@ -12,6 +12,15 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handler.HealthCheck)
 
+	// Auth Endpoints
+	mux.HandleFunc("/api/v1/auth/register", handler.Register)
+	mux.HandleFunc("/api/v1/auth/login", handler.Login)
+
+	// Metrics Endpoints
+	mux.HandleFunc("/api/v1/metrics/summary", handler.GetSummary)
+	mux.HandleFunc("/api/v1/metrics/timeseries", handler.GetTimeSeries)
+	mux.HandleFunc("/api/v1/metrics/top-content", handler.GetTopContent)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

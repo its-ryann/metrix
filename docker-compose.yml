@@ -1,0 +1,14 @@
+services:
+  api-backend:
+    build: ./api-backend
+    environment:
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+
+  frontend-dashboard:
+    build: ./frontend-dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-backend

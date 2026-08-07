@@ -3,7 +3,7 @@ FROM alpine:3.19 AS builder
 
 WORKDIR /app
 
-COPY index.html .
+COPY index.html styles.css app.js ./
 
 # Stage 2: Web server runtime
 FROM nginx:alpine
@@ -12,8 +12,8 @@ FROM nginx:alpine
 RUN touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx /usr/share/nginx/html
 
-# Copy index.html from builder stage
-COPY --from=builder /app/index.html /usr/share/nginx/html/index.html
+# Copy assets from builder stage
+COPY --from=builder /app/ /usr/share/nginx/html/
 
 # Switch to standard unprivileged nginx user
 USER nginx
