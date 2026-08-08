@@ -10,7 +10,13 @@
     }
   },
   "rewrites": [
-    { "source": "/health", "destination": { "service": "backend" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
+    {
+      "source": "/health",
+      "destination": "https://metrix-x70f.onrender.com/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://metrix-x70f.onrender.com/api/:path*"
+    }
   ]
 }
