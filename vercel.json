@@ -1,22 +1,6 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend-dashboard/",
-      "entrypoint": "Dockerfile"
-    },
-    "backend": {
-      "root": "api-backend/",
-      "entrypoint": "Dockerfile"
-    }
-  },
   "rewrites": [
-    {
-      "source": "/health",
-      "destination": "https://metrix-x70f.onrender.com/health"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://metrix-x70f.onrender.com/api/:path*"
-    }
+    { "source": "/health", "destination": "https://metrix-x70f.onrender.com/health" },
+    { "source": "/api/:path*", "destination": "https://metrix-x70f.onrender.com/api/:path*" }
   ]
 }
