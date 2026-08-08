@@ -6,193 +6,496 @@
     <title>Metrix | Unified Creator Analytics</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#0c1321",
+                        "surface": "#0c1321",
+                        "surface-dim": "#0c1321",
+                        "surface-container-lowest": "#070e1c",
+                        "surface-container-low": "#151b2a",
+                        "surface-container": "#19202e",
+                        "surface-container-high": "#232a39",
+                        "surface-container-highest": "#2e3544",
+                        "surface-variant": "#2e3544",
+                        "surface-bright": "#323949",
+                        "on-surface": "#dce2f6",
+                        "on-surface-variant": "#c2c6d6",
+                        "on-background": "#dce2f6",
+                        "outline": "#8c909f",
+                        "outline-variant": "#424754",
+                        "primary": "#adc6ff",
+                        "on-primary": "#002e6a",
+                        "primary-container": "#4d8eff",
+                        "on-primary-container": "#00285d",
+                        "inverse-primary": "#005ac2",
+                        "secondary": "#d0bcff",
+                        "secondary-container": "#571bc1",
+                        "on-secondary-container": "#c4abff",
+                        "tertiary": "#4edea3",
+                        "tertiary-container": "#00a572",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a"
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        mono: ["Inter", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="bg-background text-on-surface font-sans antialiased min-h-screen overflow-x-hidden">
+
+    <!-- Ambient background glows -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="absolute -top-48 -left-48 w-[700px] h-[700px] bg-primary-container/10 rounded-full blur-[140px]"></div>
+        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-secondary-container/10 rounded-full blur-[120px]"></div>
+    </div>
+
     <!-- Login / Register Overlay -->
-    <div id="login-overlay" class="overlay">
-        <div class="login-card">
-            <div class="logo">Metrix 📊</div>
-            <h2 id="auth-title">Sign In</h2>
-            <p id="auth-subtitle">Enter your credentials to access your dashboard</p>
-            <form id="login-form">
-                <div class="input-group hidden" id="name-group">
-                    <label>Full Name</label>
-                    <input type="text" id="name" placeholder="Metrix Creator">
-                </div>
-                <div class="input-group">
-                    <label>Email Address</label>
-                    <input type="email" id="email" placeholder="creator@metrix.com" required value="creator@metrix.com">
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="password" placeholder="••••••••" required value="password123">
-                </div>
-                <button type="submit" id="auth-submit-btn">Access Dashboard</button>
-            </form>
-            <div style="margin-top: 15px; text-align: center;">
-                <button type="button" id="auth-toggle-btn" style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 0.9rem; text-decoration: underline;">Need an account? Register here</button>
+    <div id="login-overlay" class="overlay z-50">
+        <div class="w-full max-w-md mx-auto relative z-10 flex flex-col gap-8">
+            <div class="text-center space-y-3">
+                <h1 class="text-5xl font-extrabold tracking-tight gradient-text">Metrix</h1>
+                <p class="text-lg text-on-surface-variant">Your content. Your data. One secure view.</p>
+            </div>
+
+            <div class="glass-panel rounded-xl p-8 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent"></div>
+                <form id="login-form" class="space-y-5">
+                    <div class="space-y-2 hidden" id="name-group">
+                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="name">FULL NAME</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">person</span>
+                            <input class="input-inset pl-10 focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="text" id="name" placeholder="Creator Name" autocomplete="name">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="email">EMAIL ADDRESS</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">mail</span>
+                            <input class="input-inset pl-10 focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="email" id="email" placeholder="creator@metrix.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-semibold tracking-wider text-on-surface-variant" for="password">PASSWORD</label>
+                            <button type="button" id="forgot-link" class="text-xs font-semibold text-primary hover:text-primary/80 transition-colors">Forgot?</button>
+                        </div>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">lock</span>
+                            <input class="input-inset pl-10 focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <div id="auth-notice" class="hidden text-xs text-amber-300 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2"></div>
+
+                    <button type="submit" id="auth-submit-btn"
+                        class="btn-gradient relative overflow-hidden w-full mt-2 text-white rounded-lg py-3 font-semibold text-sm tracking-wider shadow-[0_0_20px_rgba(77,142,255,0.35)] flex items-center justify-center gap-2">
+                        <svg id="auth-spinner" class="hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+                        </svg>
+                        <span id="auth-btn-label">SIGN IN</span>
+                        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="text-center">
+                <button id="auth-toggle-btn" class="text-sm text-on-surface-variant font-medium transition-colors">
+                    Don't have an account? <span class="text-primary font-semibold">Create Account</span>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Global Loading -->
-    <div id="loading-overlay" class="overlay hidden">
+    <div id="loading-overlay" class="overlay hidden z-[70]">
         <div class="spinner"></div>
     </div>
 
-    <div class="app-container hidden" id="app-content">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">Metrix 📊</div>
-            <nav>
+    <div id="app-content" class="hidden relative z-10">
+        <!-- Sidebar (Desktop) -->
+        <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 z-40 bg-surface-container border-r border-white/10 shadow-xl flex-col py-6">
+            <div class="px-6 mb-8 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-secondary-container flex items-center justify-center shadow-lg shrink-0">
+                    <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold text-primary tracking-tight leading-none">Metrix</h1>
+                    <p class="text-[10px] uppercase tracking-widest text-on-surface-variant mt-1">Creator Analytics</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto">
                 <ul id="nav-list">
-                    <li class="active" data-view="overview">Overview</li>
-                    <li data-view="platforms">Platforms</li>
-                    <li data-view="content">Content</li>
-                    <li data-view="audience">Audience</li>
-                    <li data-view="reports">Reports</li>
-                    <li data-view="settings">Settings</li>
+                    <li class="nav-item active" data-view="overview">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                        Overview
+                    </li>
+                    <li class="nav-item" data-view="platforms">
+                        <span class="material-symbols-outlined">hub</span>
+                        Platforms
+                    </li>
+                    <li class="nav-item" data-view="content">
+                        <span class="material-symbols-outlined">video_library</span>
+                        Content
+                    </li>
+                    <li class="nav-item" data-view="audience">
+                        <span class="material-symbols-outlined">groups</span>
+                        Audience
+                    </li>
+                    <li class="nav-item" data-view="settings">
+                        <span class="material-symbols-outlined">settings</span>
+                        Settings
+                    </li>
                 </ul>
             </nav>
-            <div class="sidebar-footer">
-                <button id="logout-btn">Logout</button>
+
+            <div class="px-4 mt-auto space-y-3">
+                <button class="w-full btn-gradient text-white rounded-lg py-2.5 font-semibold text-xs tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(77,142,255,0.3)]">
+                    <span class="material-symbols-outlined text-[18px]">star</span>
+                    Upgrade Pro
+                </button>
+                <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-lg py-2.5 font-semibold text-xs tracking-wider transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                    Logout
+                </button>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header>
-                <div class="header-top">
-                    <h1 id="page-title">Dashboard Overview</h1>
-                    <div class="header-actions">
-                        <span id="user-greeting">Welcome back, Creator</span>
-                        <span class="status-indicator">API: <span id="health-status">Checking...</span></span>
+        <!-- Main Content Area -->
+        <div class="ml-0 md:ml-64 flex flex-col min-h-screen">
+            <!-- Top Nav Bar -->
+            <header class="sticky top-0 z-30 bg-surface/80 backdrop-blur-xl border-b border-white/10 h-16 flex items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <span class="md:hidden text-lg font-extrabold gradient-text">Metrix</span>
+                    <div class="hidden md:block relative w-64">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                        <input class="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container/60 transition-all placeholder:text-outline-variant"
+                            placeholder="Search analytics..." type="text">
+                    </div>
+                    <div class="flex items-center gap-2 bg-tertiary-container/15 text-tertiary px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider border border-tertiary-container/20">
+                        <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+                        API <span id="health-status">Checking...</span>
                     </div>
                 </div>
-
-                <div class="filter-bar">
-                    <div class="filter-group">
-                        <label>Workspace</label>
-                        <select id="workspace-select">
-                            <option value="workspace-solo">Personal Workspace (MVP)</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Platform</label>
-                        <select id="platform-select">
-                            <option value="all">All Platforms</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Timeframe</label>
-                        <select id="timeframe-select">
-                            <option value="7d">Last 7 Days</option>
-                            <option value="28d">Last 28 Days</option>
-                            <option value="90d">Last 90 Days</option>
-                        </select>
-                    </div>
+                <div class="flex items-center gap-4">
+                    <span id="user-greeting" class="hidden sm:block text-sm text-on-surface-variant">Welcome back</span>
+                    <button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors">
+                        <span class="material-symbols-outlined">notifications</span>
+                    </button>
+                    <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary-container text-white flex items-center justify-center text-xs font-bold border border-white/20 select-none"></div>
                 </div>
             </header>
 
-            <!-- Overview View -->
-            <div id="view-overview" class="view">
-                <section class="kpi-grid">
-                    <div class="kpi-card">
-                        <h3>Total Reach</h3>
-                        <div class="value" id="kpi-reach">--</div>
-                        <div class="delta" id="kpi-reach-delta">--</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Engagement Rate</h3>
-                        <div class="value" id="kpi-engagement">--</div>
-                        <div class="delta" id="kpi-engagement-delta">--</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Follower Growth</h3>
-                        <div class="value" id="kpi-growth">--</div>
-                        <div class="delta" id="kpi-growth-delta">--</div>
-                    </div>
-                </section>
-
-                <section class="charts-section">
-                    <div class="chart-container card">
-                        <h3>Reach Performance</h3>
-                        <div class="chart-wrapper">
-                            <canvas id="reachChart"></canvas>
+            <!-- Page Content -->
+            <main class="flex-1 p-6 md:p-8">
+                <div class="max-w-7xl mx-auto">
+                    <div class="mb-6 flex justify-between items-end">
+                        <div>
+                            <h1 id="page-title" class="text-2xl md:text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                            <p id="page-subtitle" class="text-sm text-on-surface-variant mt-1">Your cross-platform performance at a glance.</p>
                         </div>
                     </div>
-                    <div class="chart-container card">
-                        <h3>Platform Distribution</h3>
-                        <div class="chart-wrapper">
-                            <canvas id="platformChart"></canvas>
+
+                    <!-- Filter Bar -->
+                    <section id="filter-bar" class="flex flex-wrap items-center gap-3 glass-card rounded-xl px-4 py-3 mb-8">
+                        <div class="filter-pill">
+                            <label class="text-[10px] uppercase tracking-widest text-outline">Workspace</label>
+                            <select id="workspace-select" class="dark-select">
+                                <option>Personal Workspace</option>
+                            </select>
+                            <span class="material-symbols-outlined text-outline text-[18px]">expand_more</span>
+                        </div>
+                        <div class="filter-pill">
+                            <label class="text-[10px] uppercase tracking-widest text-outline">Platform</label>
+                            <select id="platform-select" class="dark-select">
+                                <option value="all">All Platforms</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                            <span class="material-symbols-outlined text-outline text-[18px]">expand_more</span>
+                        </div>
+                        <div class="ml-auto flex bg-surface-container-highest rounded-lg p-1">
+                            <button class="tf-btn" data-tf="7d">7D</button>
+                            <button class="tf-btn active" data-tf="28d">28D</button>
+                            <button class="tf-btn" data-tf="90d">90D</button>
+                        </div>
+                    </section>
+
+                    <!-- Overview View -->
+                    <div id="view-overview" class="view grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- KPI Stack -->
+                        <div class="lg:col-span-4 flex flex-col gap-6">
+                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Total Reach</h3>
+                                    <span id="kpi-reach-delta" class="delta-badge">--</span>
+                                </div>
+                                <div id="kpi-reach" class="text-3xl font-bold tracking-tight">--</div>
+                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                    <path class="sparkline sparkline-primary" d="M0,25 C20,20 30,28 40,15 C50,2 60,25 80,10 C90,2 100,5 100,5" stroke="#4d8eff"/>
+                                    <path class="sparkline-glow sparkline-primary" d="M0,25 C20,20 30,28 40,15 C50,2 60,25 80,10 C90,2 100,5 100,5" stroke="#4d8eff" filter="blur(4px)"/>
+                                </svg>
+                            </article>
+                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Engagement Rate</h3>
+                                    <span id="kpi-engagement-delta" class="delta-badge">--</span>
+                                </div>
+                                <div id="kpi-engagement" class="text-3xl font-bold tracking-tight">--</div>
+                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                    <path class="sparkline sparkline-secondary" d="M0,5 C20,10 30,2 40,15 C50,28 60,10 80,20 C90,25 100,28 100,28" stroke="#d0bcff"/>
+                                    <path class="sparkline-glow sparkline-secondary" d="M0,5 C20,10 30,2 40,15 C50,28 60,10 80,20 C90,25 100,28 100,28" stroke="#d0bcff" filter="blur(4px)"/>
+                                </svg>
+                            </article>
+                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Follower Growth</h3>
+                                    <span id="kpi-growth-delta" class="delta-badge">--</span>
+                                </div>
+                                <div id="kpi-growth" class="text-3xl font-bold tracking-tight">--</div>
+                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                    <path class="sparkline sparkline-tertiary" d="M0,28 C20,25 30,20 40,18 C50,15 60,10 80,5 C90,2 100,0 100,0" stroke="#4edea3"/>
+                                    <path class="sparkline-glow sparkline-tertiary" d="M0,28 C20,25 30,20 40,18 C50,15 60,10 80,5 C90,2 100,0 100,0" stroke="#4edea3" filter="blur(4px)"/>
+                                </svg>
+                            </article>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="lg:col-span-8 flex flex-col gap-6">
+                            <article class="glass-card rounded-xl p-5 md:p-6 flex flex-col">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="text-lg font-semibold">Reach Performance</h2>
+                                    <div class="flex gap-2">
+                                        <button class="px-3 py-1.5 rounded-lg bg-surface-variant/50 text-on-surface text-xs font-semibold">Daily</button>
+                                        <button class="px-3 py-1.5 rounded-lg text-outline hover:text-on-surface text-xs font-semibold transition-colors">Weekly</button>
+                                    </div>
+                                </div>
+                                <div class="relative w-full h-[320px]">
+                                    <canvas id="reachChart"></canvas>
+                                </div>
+                            </article>
+                            <article class="glass-card rounded-xl p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                                <div>
+                                    <h2 class="text-lg font-semibold mb-1">Platform Distribution</h2>
+                                    <p class="text-sm text-on-surface-variant mb-6">Cross-channel reach breakdown</p>
+                                    <div id="platform-legend" class="space-y-4">
+                                        <div class="legend-row flex items-center justify-between">
+                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#ffb4ab]"></span><span class="text-sm text-on-surface">YouTube</span></div>
+                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                        </div>
+                                        <div class="legend-row flex items-center justify-between">
+                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary"></span><span class="text-sm text-on-surface">Instagram</span></div>
+                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                        </div>
+                                        <div class="legend-row flex items-center justify-between">
+                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-tertiary"></span><span class="text-sm text-on-surface">TikTok</span></div>
+                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="relative w-48 h-48 mx-auto">
+                                    <canvas id="platformChart"></canvas>
+                                    <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                                        <span class="text-[11px] uppercase tracking-widest text-on-surface-variant">Total</span>
+                                        <span id="platform-distribution-total" class="text-xl font-bold">--</span>
+                                    </div>
+                                </div>
+                            </article>
                         </div>
                     </div>
-                </section>
-            </div>
 
-            <!-- Platforms View -->
-            <div id="view-platforms" class="view hidden">
-                <h2 class="view-title">Connected Accounts</h2>
-                <div class="platform-grid" id="platform-list">
-                    <!-- Dynamic -->
+                    <!-- Platforms View -->
+                    <div id="view-platforms" class="view hidden">
+                        <div id="platform-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                        <button class="glass-card rounded-xl p-6 mt-6 w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-outline-variant/40 hover:bg-surface-variant/20 transition-colors group cursor-pointer min-h-[180px]">
+                            <div class="w-14 h-14 rounded-full bg-surface-variant flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-container transition-all duration-300">
+                                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-primary-container text-[30px]">add</span>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-on-surface-variant group-hover:text-primary transition-colors text-center">Add Platform</h3>
+                                <p class="text-sm text-on-surface-variant text-center mt-1 max-w-[240px]">Connect a new data source to your dashboard.</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Content View -->
+                    <div id="view-content" class="view hidden">
+                        <div class="glass-card rounded-xl overflow-hidden shadow-lg">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="border-b border-white/10 bg-surface-container-lowest/50">
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Content Title</th>
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Platform</th>
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold text-right">Engagement</th>
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold text-right">Reach</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="content-table" class="divide-y divide-white/5">
+                                        <tr>
+                                            <td colspan="4" class="px-5 py-8 text-center text-sm text-on-surface-variant">
+                                                <div class="spinner mx-auto"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="border-t border-white/10 bg-surface-container-lowest/30 px-5 py-4 flex items-center justify-between">
+                                <span class="text-sm text-outline">Showing top performing content</span>
+                                <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-bright transition-colors border border-white/5">
+                                    <span class="material-symbols-outlined text-[16px]">download</span>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audience View -->
+                    <div id="view-audience" class="view hidden grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
+                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Total Reach</span>
+                            <div id="kpi-audience-total" class="text-4xl font-bold text-primary mt-2">--</div>
+                            <span class="text-xs text-on-surface-variant mt-2">Across all connected platforms</span>
+                        </div>
+                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
+                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Avg. Engagement Rate</span>
+                            <div id="kpi-audience-engagement" class="text-4xl font-bold text-secondary mt-2">--</div>
+                            <span class="text-xs text-on-surface-variant mt-2">Latest recorded period</span>
+                        </div>
+                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
+                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Primary Demographic</span>
+                            <div id="kpi-audience-primary" class="text-3xl font-bold mt-2">--</div>
+                            <span class="text-xs text-on-surface-variant mt-2">Largest age group</span>
+                        </div>
+                        <div class="col-span-1 md:col-span-7 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
+                            <h2 class="text-lg font-semibold mb-4">Age &amp; Gender Split</h2>
+                            <div class="flex-1 relative w-full min-h-[300px]">
+                                <canvas id="audienceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-span-1 md:col-span-5 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
+                            <h2 class="text-lg font-semibold mb-4">Top Geographies</h2>
+                            <div class="flex-1 relative w-full min-h-[300px]">
+                                <canvas id="geoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings View -->
+                    <div id="view-settings" class="view hidden space-y-6">
+                        <section class="glass-card rounded-xl p-6 md:p-8 relative overflow-hidden">
+                            <div class="absolute -right-20 -top-20 w-72 h-72 bg-primary/15 blur-3xl rounded-full pointer-events-none"></div>
+                            <div class="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                                <div class="max-w-md">
+                                    <div class="inline-flex items-center gap-2 bg-primary-container/15 text-primary px-3 py-1 rounded-full text-xs font-semibold">
+                                        <span class="material-symbols-outlined text-[16px]">workspace_premium</span>
+                                        Reporting Tiers
+                                    </div>
+                                    <h2 class="text-xl font-semibold mt-3">Unlock Advanced Analytics</h2>
+                                    <p class="text-sm text-on-surface-variant mt-1">Get deeper insights with predictive modeling, custom dashboards, and unlimited API access.</p>
+                                </div>
+                                <button class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold text-sm shadow-[0_0_20px_rgba(173,198,255,0.3)]">
+                                    Upgrade to Metrix Pro
+                                </button>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">Configuration</h3>
+                            <div class="glass-card rounded-xl overflow-hidden divide-y divide-white/5">
+                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
+                                            <span class="material-symbols-outlined">person</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-semibold">Profile Settings</div>
+                                            <div class="text-xs text-on-surface-variant mt-0.5">Personal info &amp; preferences</div>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                                </div>
+                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
+                                            <span class="material-symbols-outlined">notifications</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-semibold">Notifications</div>
+                                            <div class="text-xs text-on-surface-variant mt-0.5">Alerts &amp; daily digests</div>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                                </div>
+                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
+                                            <span class="material-symbols-outlined">security</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-semibold">Security</div>
+                                            <div class="text-xs text-on-surface-variant mt-0.5">2FA &amp; active sessions</div>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                                </div>
+                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
+                                            <span class="material-symbols-outlined">api</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-semibold">API Connections</div>
+                                            <div class="text-xs text-on-surface-variant mt-0.5">Keys &amp; webhooks</div>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
-            </div>
+            </main>
+        </div>
 
-            <!-- Content View -->
-            <div id="view-content" class="view hidden">
-                <h2 class="view-title">Top Performing Content</h2>
-                <section class="content-section card">
-                    <div class="table-wrapper">
-                        <table id="content-table">
-                            <thead>
-                                <tr>
-                                    <th>Content Title</th>
-                                    <th>Platform</th>
-                                    <th>Engagement</th>
-                                    <th>Reach</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Audience View -->
-            <div id="view-audience" class="view hidden">
-                <h2 class="view-title">Audience Demographics</h2>
-                <div class="audience-grid">
-                    <div class="card chart-container">
-                        <h3>Age & Gender Split</h3>
-                        <div class="chart-wrapper">
-                            <canvas id="audienceChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="card chart-container">
-                        <h3>Top Geographies</h3>
-                        <div class="chart-wrapper">
-                            <canvas id="geoChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Placeholder Views -->
-            <div id="view-reports" class="view hidden">
-                <h2 class="view-title">Scheduled Reports</h2>
-                <p class="card">Report generation is available in the Pro tier. <a href="#">Upgrade now</a>.</p>
-            </div>
-            <div id="view-settings" class="view hidden">
-                <h2 class="view-title">Account Settings</h2>
-                <p class="card">Manage your profile, workspaces, and team members.</p>
-            </div>
-        </main>
+        <!-- Mobile Bottom Nav -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-2 py-2 pb-safe bg-surface/80 backdrop-blur-xl border-t border-white/10 shadow-2xl">
+            <a class="mob-nav active" data-view="overview">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                Overview
+            </a>
+            <a class="mob-nav" data-view="platforms">
+                <span class="material-symbols-outlined">hub</span>
+                Platforms
+            </a>
+            <a class="mob-nav" data-view="content">
+                <span class="material-symbols-outlined">video_library</span>
+                Content
+            </a>
+            <a class="mob-nav" data-view="audience">
+                <span class="material-symbols-outlined">groups</span>
+                Audience
+            </a>
+            <a class="mob-nav" data-view="settings">
+                <span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+        </nav>
     </div>
 
     <script src="app.js"></script>
