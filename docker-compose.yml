@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: metrix_password
       POSTGRES_DB: metrix
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
