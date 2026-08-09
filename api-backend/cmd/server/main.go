@@ -30,6 +30,12 @@ func main() {
 	// Auth Endpoints (Public)
 	mux.HandleFunc("/api/v1/auth/register", handler.Register)
 	mux.HandleFunc("/api/v1/auth/login", handler.Login)
+	mux.HandleFunc("/api/v1/auth/reset-password", handler.SendPasswordReset)
+	mux.HandleFunc("/api/v1/auth/reset-password/confirm", handler.ResetPassword)
+
+	// OAuth Endpoints
+	mux.HandleFunc("/api/v1/oauth/connect", handler.AuthMiddleware(handler.GetOAuthConnectURL))
+	mux.HandleFunc("/api/v1/oauth/callback/", handler.OAuthCallback)
 
 	// Auth Endpoints (Protected)
 	mux.HandleFunc("/api/v1/auth/me", handler.AuthMiddleware(handler.GetMe))
