@@ -26,12 +26,12 @@ func timeframeDays(r *http.Request) (int, error) {
 }
 
 type SummaryResponse struct {
-	TotalReach     int     `json:"total_reach"`
-	ReachDelta     float64 `json:"reach_delta"`
-	AvgEngagement  float64 `json:"avg_engagement"`
-	EngageDelta    float64 `json:"engage_delta"`
-	FollowerGrowth int     `json:"follower_growth"`
-	GrowthDelta    float64 `json:"growth_delta"`
+	TotalReach    int     `json:"total_reach"`
+	ReachDelta    float64 `json:"reach_delta"`
+	AvgEngagement float64 `json:"avg_engagement"`
+	EngageDelta   float64 `json:"engage_delta"`
+	ReachGrowth   int     `json:"reach_growth"`
+	GrowthDelta   float64 `json:"growth_delta"`
 }
 
 type TimeSeriesResponse struct {
@@ -78,11 +78,11 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res := SummaryResponse{
-		TotalReach:     current.TotalReach,
-		AvgEngagement:  current.AvgEngagement,
-		FollowerGrowth: current.TotalReach - previous.TotalReach,
-		ReachDelta:     percentDelta(float64(current.TotalReach), float64(previous.TotalReach)),
-		EngageDelta:    percentDelta(current.AvgEngagement, previous.AvgEngagement),
+		TotalReach:    current.TotalReach,
+		AvgEngagement: current.AvgEngagement,
+		ReachGrowth:   current.TotalReach - previous.TotalReach,
+		ReachDelta:    percentDelta(float64(current.TotalReach), float64(previous.TotalReach)),
+		EngageDelta:   percentDelta(current.AvgEngagement, previous.AvgEngagement),
 	}
 	res.GrowthDelta = res.ReachDelta
 
