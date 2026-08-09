@@ -490,7 +490,7 @@ async function fetchSummary(params) {
 
         updateKPI("reach", data.total_reach, data.reach_delta);
         updateKPI("engagement", data.avg_engagement, data.engage_delta, true);
-        updateKPI("growth", data.follower_growth, data.growth_delta);
+        updateKPI("growth", data.reach_growth, data.growth_delta);
 
         const audienceTotal = document.getElementById("kpi-audience-total");
         const audienceEngagement = document.getElementById("kpi-audience-engagement");
@@ -897,6 +897,13 @@ async function authorizePlatform() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to connect platform");
         closeConnectModal();
+        if (data.demo) {
+            const meta = PLATFORM_META[selectedPlatform] || { label: selectedPlatform };
+            refreshConnectedPlatforms();
+            if (state.currentView === "platforms") fetchPlatforms();
+            toast(`${meta.label} connected (demo data)`, "success");
+            return;
+        }
         toast("Redirecting to OAuth provider...", "info");
         window.open(data.url, "_blank");
     } catch (err) {

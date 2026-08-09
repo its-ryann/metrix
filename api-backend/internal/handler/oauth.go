@@ -54,6 +54,13 @@ func init() {
 	}
 }
 
+// isDemoMode reports whether the OAuth flow should be bypassed with simulated
+// data instead of a real provider authorization. The demo path is the default
+// for this portfolio deployment; set DEMO_MODE=false to enable real OAuth.
+func isDemoMode() bool {
+	return os.Getenv("DEMO_MODE") != "false"
+}
+
 func generateState(accountID string) (string, error) {
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
@@ -115,6 +122,53 @@ func GetOAuthConnectURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"Unsupported platform"}`, http.StatusBadRequest)
 		return
 	}
+
+	// Demo mode bypasses the real OAuth dance: the platform account is created
+	// (or reconnected) directly with status "connected" and seeded with
+	// simulated history. The real OAuth path below stays intact for when real
+	// client credentials are configured.
+	if isDemoMode() {
+		existing, err := db.GetPlatformAccountForUser(r.Context(), userID, platform)
+		if err != nil {
+			http.Error(w, `{"error":"Database query failed"}`, http.StatusInternalServerError)
+			return
+		}
+		if existing != nil && existing.Status == "connected" {
+			http.Error(w, `{"error":"This platform is already connected"}`, http.StatusConflict)
+			return
+		}
+
+		displayName := strings.TrimSpace(req.DisplayName)
+		if displayName == "" {
+			displayName = platformDefaultName(platform)
+		}
+
+		if existing != nil {
+			if _, err := db.UpdatePlatformAccountStatus(r.Context(), existing.ID, userID, "connected"); err != nil {
+				http.Error(w, `{"error":"Failed to reconnect platform"}`, http.StatusInternalServerError)
+				return
+			}
+		} else {
+			if _, err := db.CreatePlatformAccountWithStatus(r.Context(), userID, platform, displayName, "connected"); err != nil {
+				http.Error(w, `{"error":"Failed to create platform account"}`, http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if err := db.SeedMetricsForPlatform(r.Context(), userID, platform); err != nil {
+			http.Error(w, `{"error":"Failed to sync platform data"}`, http.StatusInternalServerError)
+			return
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"demo":         true,
+			"status":       "connected",
+			"platform":     platform,
+			"display_name": displayName,
+		})
+		return
+	}
+
 	if cfg.ClientID == "" || cfg.RedirectURI == "" {
 		http.Error(w, `{"error":"OAuth not configured for this platform"}`, http.StatusServiceUnavailable)
 		return

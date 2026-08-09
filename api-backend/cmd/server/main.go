@@ -17,6 +17,16 @@ func main() {
 		log.Fatalf("DATABASE_URL environment variable is required")
 	}
 
+	// Refuse to boot with hardcoded secret fallbacks outside local development.
+	if os.Getenv("ENV") != "local" {
+		if os.Getenv("JWT_SECRET") == "" {
+			log.Fatalf("JWT_SECRET environment variable is required when ENV != local")
+		}
+		if os.Getenv("OAUTH_STATE_SECRET") == "" {
+			log.Fatalf("OAUTH_STATE_SECRET environment variable is required when ENV != local")
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
