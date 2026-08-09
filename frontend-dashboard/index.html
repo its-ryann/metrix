@@ -211,6 +211,9 @@
                     <button id="notifications-btn" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors" title="Notifications">
                         <span class="material-symbols-outlined">notifications</span>
                     </button>
+                    <button id="help-btn" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors" title="Help">
+                        <span class="material-symbols-outlined">help</span>
+                    </button>
                     <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary-container text-white flex items-center justify-center text-xs font-bold border border-white/20 select-none"></div>
                 </div>
             </header>
@@ -252,92 +255,83 @@
                     </section>
 
                     <!-- Overview View -->
-                    <div id="view-overview" class="view grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        <!-- KPI Stack -->
-                        <div class="lg:col-span-4 flex flex-col gap-6">
-                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                    <div id="view-overview" class="view flex flex-col gap-6">
+                        <!-- KPI Row -->
+                        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <article class="glass-card rounded-xl p-[20px] flex flex-col gap-3">
                                 <div class="flex justify-between items-start">
-                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Total Reach</h3>
+                                    <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold">Total Reach</h3>
                                     <span id="kpi-reach-delta" class="delta-badge">--</span>
                                 </div>
                                 <div id="kpi-reach" class="text-3xl font-bold tracking-tight">--</div>
-                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
-                                    <path class="sparkline sparkline-primary" d="M0,25 C20,20 30,28 40,15 C50,2 60,25 80,10 C90,2 100,5 100,5" stroke="#4d8eff"/>
-                                    <path class="sparkline-glow sparkline-primary" d="M0,25 C20,20 30,28 40,15 C50,2 60,25 80,10 C90,2 100,5 100,5" stroke="#4d8eff" filter="blur(4px)"/>
+                                <svg id="kpi-reach-sparkline" class="w-full h-10 mt-auto" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                    <path class="sparkline sparkline-primary" stroke="#4d8eff" d=""></path>
+                                    <path class="sparkline-glow sparkline-primary" stroke="#4d8eff" d="" filter="blur(4px)"></path>
                                 </svg>
                             </article>
-                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                            <article class="glass-card rounded-xl p-[20px] flex flex-col gap-3">
                                 <div class="flex justify-between items-start">
-                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Engagement Rate</h3>
+                                    <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold">Engagement Rate</h3>
                                     <span id="kpi-engagement-delta" class="delta-badge">--</span>
                                 </div>
                                 <div id="kpi-engagement" class="text-3xl font-bold tracking-tight">--</div>
-                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
-                                    <path class="sparkline sparkline-secondary" d="M0,5 C20,10 30,2 40,15 C50,28 60,10 80,20 C90,25 100,28 100,28" stroke="#d0bcff"/>
-                                    <path class="sparkline-glow sparkline-secondary" d="M0,5 C20,10 30,2 40,15 C50,28 60,10 80,20 C90,25 100,28 100,28" stroke="#d0bcff" filter="blur(4px)"/>
-                                </svg>
                             </article>
-                            <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
+                            <article class="glass-card rounded-xl p-[20px] flex flex-col gap-3">
                                 <div class="flex justify-between items-start">
-                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Reach Growth</h3>
+                                    <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold">Reach Growth</h3>
                                     <span id="kpi-growth-delta" class="delta-badge">--</span>
                                 </div>
                                 <div id="kpi-growth" class="text-3xl font-bold tracking-tight">--</div>
-                                <svg class="w-full h-10" viewBox="0 0 100 30" preserveAspectRatio="none">
-                                    <path class="sparkline sparkline-tertiary" d="M0,28 C20,25 30,20 40,18 C50,15 60,10 80,5 C90,2 100,0 100,0" stroke="#4edea3"/>
-                                    <path class="sparkline-glow sparkline-tertiary" d="M0,28 C20,25 30,20 40,18 C50,15 60,10 80,5 C90,2 100,0 100,0" stroke="#4edea3" filter="blur(4px)"/>
-                                </svg>
                             </article>
-                        </div>
+                        </section>
 
-                        <!-- Charts -->
-                        <div class="lg:col-span-8 flex flex-col gap-6">
-                            <article class="glass-card rounded-xl p-5 md:p-6 flex flex-col">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h2 class="text-lg font-semibold">Reach Performance</h2>
-                                    <div class="flex gap-2">
-                                        <button class="px-3 py-1.5 rounded-lg bg-surface-variant/50 text-on-surface text-xs font-semibold">Daily</button>
-                                        <button class="px-3 py-1.5 rounded-lg text-outline hover:text-on-surface text-xs font-semibold transition-colors">Weekly</button>
-                                    </div>
+                        <!-- Reach Performance -->
+                        <article class="glass-card rounded-xl p-5 md:p-6 flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-semibold">Reach Performance</h2>
+                                <div class="flex gap-2">
+                                    <button class="px-3 py-1.5 rounded-lg bg-surface-variant/50 text-on-surface text-xs font-semibold">Daily</button>
+                                    <button class="px-3 py-1.5 rounded-lg text-outline hover:text-on-surface text-xs font-semibold transition-colors">Weekly</button>
                                 </div>
-                                <div class="relative w-full h-[320px]">
-                                    <canvas id="reachChart"></canvas>
-                                </div>
-                            </article>
-                            <article class="glass-card rounded-xl p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-                                <div>
-                                    <h2 class="text-lg font-semibold mb-1">Platform Distribution</h2>
-                                    <p class="text-sm text-on-surface-variant mb-6">Cross-channel reach breakdown</p>
-                                    <div id="platform-legend" class="space-y-4">
-                                        <div class="legend-row flex items-center justify-between">
-                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#ffb4ab]"></span><span class="text-sm text-on-surface">YouTube</span></div>
-                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
-                                        </div>
-                                        <div class="legend-row flex items-center justify-between">
-                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary"></span><span class="text-sm text-on-surface">Instagram</span></div>
-                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
-                                        </div>
-                                        <div class="legend-row flex items-center justify-between">
-                                            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-tertiary"></span><span class="text-sm text-on-surface">TikTok</span></div>
-                                            <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="relative w-48 h-48 mx-auto">
+                            </div>
+                            <div class="relative w-full h-[320px]">
+                                <canvas id="reachChart"></canvas>
+                            </div>
+                        </article>
+
+                        <!-- Platform Distribution -->
+                        <article class="glass-card rounded-xl p-5 md:p-6 flex flex-col">
+                            <h2 class="text-lg font-semibold mb-6">Platform Distribution</h2>
+                            <div class="flex-1 flex flex-col items-center justify-center">
+                                <div class="relative w-44 h-44">
                                     <canvas id="platformChart"></canvas>
                                     <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                                        <span class="text-[11px] uppercase tracking-widest text-on-surface-variant">Total</span>
-                                        <span id="platform-distribution-total" class="text-xl font-bold">--</span>
+                                        <span id="platform-distribution-total" class="text-2xl font-bold">--</span>
+                                        <span class="text-[11px] uppercase tracking-widest text-on-surface-variant">Sources</span>
                                     </div>
                                 </div>
-                            </article>
-                        </div>
+                                <div id="platform-legend" class="w-full mt-6 flex flex-col gap-3">
+                                    <div class="legend-row flex items-center justify-between">
+                                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#ffb4ab]"></span><span class="text-sm text-on-surface">YouTube</span></div>
+                                        <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                    </div>
+                                    <div class="legend-row flex items-center justify-between">
+                                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-secondary"></span><span class="text-sm text-on-surface">Instagram</span></div>
+                                        <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                    </div>
+                                    <div class="legend-row flex items-center justify-between">
+                                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-tertiary"></span><span class="text-sm text-on-surface">TikTok</span></div>
+                                        <span class="legend-pct text-sm text-on-surface-variant font-mono">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
                     </div>
 
                     <!-- Platforms View -->
                     <div id="view-platforms" class="view hidden">
                         <div id="platform-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-                        <button id="open-connect-btn" class="glass-card rounded-xl p-6 mt-6 w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-outline-variant/40 hover:bg-surface-variant/20 transition-colors group cursor-pointer min-h-[180px]">
+                        <button id="open-connect-btn" class="glass-card rounded-xl p-6 mt-6 w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-outline-variant/40 hover:bg-surface-variant/20 transition-colors group cursor-pointer min-h-[240px]">
                             <div class="w-14 h-14 rounded-full bg-surface-variant flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-container transition-all duration-300">
                                 <span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-primary-container text-[30px]">add</span>
                             </div>
@@ -351,19 +345,38 @@
                     <!-- Content View -->
                     <div id="view-content" class="view hidden">
                         <div class="glass-card rounded-xl overflow-hidden shadow-lg">
+                            <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                                <div class="relative" id="content-filter-wrap">
+                                    <button id="content-filter-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant/50 text-on-surface text-xs font-semibold hover:bg-white/5 transition-colors">
+                                        <span class="material-symbols-outlined text-[16px]">filter_list</span>
+                                        <span id="content-filter-label">All Platforms</span>
+                                    </button>
+                                    <div id="content-filter-menu" class="hidden absolute left-0 mt-2 w-48 glass-card rounded-lg p-1 z-20">
+                                        <button class="filter-option w-full text-left px-3 py-2 rounded-md text-sm text-on-surface hover:bg-surface-variant/50 transition-colors" data-platform="all">All Platforms</button>
+                                        <button class="filter-option w-full text-left px-3 py-2 rounded-md text-sm text-on-surface hover:bg-surface-variant/50 transition-colors" data-platform="youtube">YouTube</button>
+                                        <button class="filter-option w-full text-left px-3 py-2 rounded-md text-sm text-on-surface hover:bg-surface-variant/50 transition-colors" data-platform="instagram">Instagram</button>
+                                        <button class="filter-option w-full text-left px-3 py-2 rounded-md text-sm text-on-surface hover:bg-surface-variant/50 transition-colors" data-platform="tiktok">TikTok</button>
+                                    </div>
+                                </div>
+                                <button id="export-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-bright transition-colors border border-white/5">
+                                    <span class="material-symbols-outlined text-[16px]">download</span>
+                                    Export
+                                </button>
+                            </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left">
                                     <thead>
                                         <tr class="border-b border-white/10 bg-surface-container-lowest/50">
-                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Content Title</th>
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Content</th>
                                             <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Platform</th>
+                                            <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold">Published</th>
                                             <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold text-right">Engagement</th>
                                             <th class="px-5 py-4 text-[11px] uppercase tracking-wider text-outline font-semibold text-right">Reach</th>
                                         </tr>
                                     </thead>
                                     <tbody id="content-table" class="divide-y divide-white/5">
                                         <tr>
-                                            <td colspan="4" class="px-5 py-8 text-center text-sm text-on-surface-variant">
+                                            <td colspan="5" class="px-5 py-8 text-center text-sm text-on-surface-variant">
                                                 <div class="spinner mx-auto"></div>
                                             </td>
                                         </tr>
@@ -371,42 +384,72 @@
                                 </table>
                             </div>
                             <div class="border-t border-white/10 bg-surface-container-lowest/30 px-5 py-4 flex items-center justify-between">
-                                <span class="text-sm text-outline">Showing top performing content</span>
-                                <button id="export-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-bright transition-colors border border-white/5">
-                                    <span class="material-symbols-outlined text-[16px]">download</span>
-                                    Export
-                                </button>
+                                <span id="content-count" class="text-sm text-outline">Showing top performing content</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Audience View -->
-                    <div id="view-audience" class="view hidden grid grid-cols-1 md:grid-cols-12 gap-6">
-                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
-                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Total Reach</span>
-                            <div id="kpi-audience-total" class="text-4xl font-bold text-primary mt-2">--</div>
-                            <span class="text-xs text-on-surface-variant mt-2">Across all connected platforms</span>
-                        </div>
-                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
-                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Avg. Engagement Rate</span>
-                            <div id="kpi-audience-engagement" class="text-4xl font-bold text-secondary mt-2">--</div>
-                            <span class="text-xs text-on-surface-variant mt-2">Latest recorded period</span>
-                        </div>
-                        <div class="col-span-1 md:col-span-4 glass-card rounded-xl p-5 flex flex-col justify-center">
-                            <span class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Primary Demographic</span>
-                            <div id="kpi-audience-primary" class="text-3xl font-bold mt-2">--</div>
-                            <span class="text-xs text-on-surface-variant mt-2">Largest age group</span>
-                        </div>
-                        <div class="col-span-1 md:col-span-7 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
-                            <h2 class="text-lg font-semibold mb-4">Age &amp; Gender Split</h2>
-                            <div class="flex-1 relative w-full min-h-[300px]">
-                                <canvas id="audienceChart"></canvas>
+                    <div id="view-audience" class="view hidden flex flex-col gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="glass-card rounded-xl p-[20px] relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+                                <p class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg text-primary">visibility</span>
+                                    Total Reach
+                                </p>
+                                <div class="flex items-end gap-3">
+                                    <div id="kpi-audience-total" class="text-4xl font-bold tracking-tight">--</div>
+                                    <span id="kpi-audience-total-delta" class="delta-badge mb-1"></span>
+                                </div>
+                            </div>
+                            <div class="glass-card rounded-xl p-[20px] relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/10 rounded-full blur-2xl pointer-events-none"></div>
+                                <p class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg text-secondary">favorite</span>
+                                    Avg. Engagement
+                                </p>
+                                <div class="flex items-end gap-3">
+                                    <div id="kpi-audience-engagement" class="text-4xl font-bold tracking-tight">--</div>
+                                    <span id="kpi-audience-engagement-delta" class="delta-badge mb-1"></span>
+                                </div>
+                            </div>
+                            <div class="glass-card rounded-xl p-[20px] relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/10 rounded-full blur-2xl pointer-events-none"></div>
+                                <p class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg text-tertiary">groups</span>
+                                    Primary Demographic
+                                </p>
+                                <div class="flex items-end gap-3">
+                                    <div id="kpi-audience-primary" class="text-3xl font-bold tracking-tight">--</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-span-1 md:col-span-5 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
-                            <h2 class="text-lg font-semibold mb-4">Top Geographies</h2>
-                            <div class="flex-1 relative w-full min-h-[300px]">
-                                <canvas id="geoChart"></canvas>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <div class="col-span-1 md:col-span-7 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
+                                <h2 class="text-lg font-semibold mb-4">Age &amp; Gender Split</h2>
+                                <div id="age-gender-bars" class="flex-1 flex flex-col justify-center gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="w-14 text-xs text-on-surface-variant font-mono">--</span>
+                                        <div class="flex-1 h-3 bg-surface-bright rounded-full overflow-hidden"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-center gap-6">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 rounded-full bg-primary"></span>
+                                        <span class="text-sm text-on-surface-variant">Male</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 rounded-full bg-secondary"></span>
+                                        <span class="text-sm text-on-surface-variant">Female</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-span-1 md:col-span-5 glass-card rounded-xl p-5 min-h-[380px] flex flex-col">
+                                <h2 class="text-lg font-semibold mb-4">Top Geographies</h2>
+                                <div class="flex-1 relative w-full min-h-[300px]">
+                                    <canvas id="geoChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
