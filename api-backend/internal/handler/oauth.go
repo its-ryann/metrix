@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,6 +75,10 @@ func verifyState(state string) (string, bool) {
 		return "", false
 	}
 	accountID, nonceStr, timestamp, signature := parts[0], parts[1], parts[2], parts[3]
+	issuedAt, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil || time.Since(time.Unix(issuedAt, 0)) > 10*time.Minute || time.Unix(issuedAt, 0).After(time.Now().Add(time.Minute)) {
+		return "", false
+	}
 	payload := fmt.Sprintf("%s:%s:%s", accountID, nonceStr, timestamp)
 	mac := hmac.New(sha256.New, stateSecret)
 	mac.Write([]byte(payload))
@@ -84,7 +90,8 @@ func verifyState(state string) (string, bool) {
 }
 
 type GetOAuthConnectURLRequest struct {
-	Platform string `json:"platform"`
+	Platform    string `json:"platform"`
+	DisplayName string `json:"display_name"`
 }
 
 func GetOAuthConnectURL(w http.ResponseWriter, r *http.Request) {
@@ -102,8 +109,6 @@ func GetOAuthConnectURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"Invalid JSON payload"}`, http.StatusBadRequest)
 		return
 	}
-	_ = req
-
 	platform := strings.ToLower(strings.TrimSpace(req.Platform))
 	cfg, ok := oauthConfig[platform]
 	if !ok {
@@ -125,11 +130,22 @@ func GetOAuthConnectURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	displayName := strings.TrimSpace(req.DisplayName)
+	if displayName == "" {
+		displayName = platformDefaultName(platform)
+	}
+
 	var accountID string
 	if existing != nil {
 		accountID = existing.ID
+		if displayName != platformDefaultName(platform) {
+			if err := db.UpdatePlatformAccountName(r.Context(), existing.ID, userID, displayName); err != nil {
+				http.Error(w, `{"error":"Failed to save platform display name"}`, http.StatusInternalServerError)
+				return
+			}
+		}
 	} else {
-		acc, err := db.CreatePlatformAccount(r.Context(), userID, platform, platformDefaultName(platform))
+		acc, err := db.CreatePlatformAccountWithStatus(r.Context(), userID, platform, displayName, "pending")
 		if err != nil {
 			http.Error(w, `{"error":"Failed to create platform account"}`, http.StatusInternalServerError)
 			return
@@ -143,14 +159,36 @@ func GetOAuthConnectURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&response_type=code&state=%s&scope=read",
-		cfg.AuthURL, cfg.ClientID, cfg.RedirectURI, state)
+	authURL, err := addOAuthParams(cfg.AuthURL, url.Values{
+		"client_id":     {cfg.ClientID},
+		"redirect_uri":  {cfg.RedirectURI},
+		"response_type": {"code"},
+		"state":         {state},
+		"scope":         {"read"},
+	})
+	if err != nil {
+		http.Error(w, `{"error":"Failed to build authorization URL"}`, http.StatusInternalServerError)
+		return
+	}
 
 	res := map[string]string{
 		"url":   authURL,
 		"state": state,
 	}
 	_ = json.NewEncoder(w).Encode(res)
+}
+
+func addOAuthParams(rawURL string, params url.Values) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	for key, values := range params {
+		q[key] = values
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
 
 func OAuthCallback(w http.ResponseWriter, r *http.Request) {
@@ -177,6 +215,11 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"Unsupported platform"}`, http.StatusBadRequest)
 		return
 	}
+	account, err := db.GetPlatformAccountByID(r.Context(), accountID)
+	if err != nil || account == nil || account.Platform != platform {
+		http.Error(w, `{"error":"OAuth state does not match a platform account"}`, http.StatusBadRequest)
+		return
+	}
 
 	tokenResp, expiresAt, err := exchangeCodeForToken(cfg.TokenURL, code, cfg.ClientID, cfg.RedirectURI)
 	if err != nil {
@@ -189,15 +232,13 @@ func OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := db.UpdatePlatformAccountStatus(r.Context(), accountID, "", "connected"); err != nil {
+	if ok, err := db.UpdatePlatformAccountStatusByID(r.Context(), accountID, "connected"); err != nil || !ok {
 		http.Error(w, `{"error":"Failed to update platform status"}`, http.StatusInternalServerError)
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"status":   "connected",
-		"platform": platform,
-	})
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = fmt.Fprintf(w, `<!doctype html><title>Metrix connected</title><script>if(window.opener){window.opener.postMessage({type:"metrix-oauth-complete",platform:%q},"*");window.close()}</script><p>%s connected. You can close this window.</p>`, platform, platform)
 }
 
 type tokenResponse struct {

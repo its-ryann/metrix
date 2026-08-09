@@ -1,9 +1,17 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
+	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -22,6 +30,56 @@ type PasswordResetConfirm struct {
 
 type PasswordResetResponse struct {
 	Message string `json:"message"`
+}
+
+const passwordResetMessage = "If an account exists for that email, a reset link has been sent."
+
+type resendEmailRequest struct {
+	From    string   `json:"from"`
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	HTML    string   `json:"html"`
+}
+
+func sendPasswordResetEmail(to, resetLink string) error {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("RESEND_API_KEY is not configured")
+	}
+
+	from := os.Getenv("EMAIL_FROM")
+	if from == "" {
+		// Resend permits this sender for testing to the account owner's address.
+		from = "Metrix <onboarding@resend.dev>"
+	}
+
+	payload, err := json.Marshal(resendEmailRequest{
+		From:    from,
+		To:      []string{to},
+		Subject: "Reset your Metrix password",
+		HTML:    fmt.Sprintf(`<p>We received a request to reset your Metrix password.</p><p><a href="%s">Reset your password</a></p><p>This link expires in one hour. If you did not request it, you can safely ignore this email.</p>`, html.EscapeString(resetLink)),
+	})
+	if err != nil {
+		return fmt.Errorf("encode email payload: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("create resend request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return fmt.Errorf("send reset email: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return fmt.Errorf("resend returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return nil
 }
 
 func SendPasswordReset(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +110,7 @@ func SendPasswordReset(w http.ResponseWriter, r *http.Request) {
 
 	if user == nil {
 		_ = json.NewEncoder(w).Encode(PasswordResetResponse{
-			Message: "If an account exists for that email, a reset link has been sent.",
+			Message: passwordResetMessage,
 		})
 		return
 	}
@@ -63,12 +121,20 @@ func SendPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resetLink := fmt.Sprintf("https://app.metrix.com/reset-password?token=%s&email=%s", token.Token, user.Email)
+	appURL := strings.TrimSuffix(os.Getenv("PUBLIC_APP_URL"), "/")
+	if appURL == "" {
+		appURL = "https://app.metrix.com"
+	}
+	resetLink := fmt.Sprintf("%s/?token=%s&email=%s", appURL, url.QueryEscape(token.Token), url.QueryEscape(user.Email))
 
-	fmt.Printf("[Metrix Password Reset] User: %s (%s) — Reset Link: %s\n", user.Name, user.Email, resetLink)
+	if err := sendPasswordResetEmail(user.Email, resetLink); err != nil {
+		log.Printf("[Metrix Password Reset] failed to send reset email for user %s: %v", user.ID, err)
+		http.Error(w, `{"error":"Unable to send reset email. Please try again later."}`, http.StatusBadGateway)
+		return
+	}
 
 	_ = json.NewEncoder(w).Encode(PasswordResetResponse{
-		Message: "If an account exists for that email, a reset link has been sent.",
+		Message: passwordResetMessage,
 	})
 }
 

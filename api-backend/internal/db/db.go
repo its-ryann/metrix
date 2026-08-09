@@ -45,6 +45,37 @@ type TimeSeriesPoint struct {
 	Value int    `json:"value"`
 }
 
+type MetricWindow struct {
+	TotalReach    int
+	AvgEngagement float64
+}
+
+// GetMetricWindow returns the metrics that have a date dimension, scoped to a
+// platform and reporting window. It deliberately excludes disconnected sources.
+func GetMetricWindow(ctx context.Context, userID, platform string, from, to time.Time) (MetricWindow, error) {
+	var result MetricWindow
+	if err := Pool.QueryRow(ctx, `
+		SELECT COALESCE(SUM(t.value), 0)
+		FROM metrics_timeseries t
+		JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
+		WHERE t.user_id = $1
+		  AND ($2 = '' OR $2 = 'all' OR t.platform = $2)
+		  AND t.metric_date >= $3::date AND t.metric_date < $4::date
+	`, userID, platform, from, to).Scan(&result.TotalReach); err != nil {
+		return result, err
+	}
+	if err := Pool.QueryRow(ctx, `
+		SELECT COALESCE(AVG(engagement), 0)
+		FROM content_items
+		WHERE user_id = $1
+		  AND ($2 = '' OR $2 = 'all' OR platform = $2)
+		  AND recorded_at >= $3 AND recorded_at < $4
+	`, userID, platform, from, to).Scan(&result.AvgEngagement); err != nil {
+		return result, err
+	}
+	return result, nil
+}
+
 func InitDB(ctx context.Context, connStr string) error {
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
@@ -109,33 +140,7 @@ func CreateUser(ctx context.Context, email, passwordHash, name string) (*User, e
 		return nil, fmt.Errorf("failed to insert user: %w", err)
 	}
 
-	// Seed default platform accounts for user
-	platformAccounts := []struct {
-		platform    string
-		displayName string
-	}{
-		{"youtube", name + " Channel"},
-		{"instagram", "@" + email[:indexOrLength(email, "@")] + "_official"},
-		{"tiktok", "@" + email[:indexOrLength(email, "@")]},
-	}
-
-	for _, pa := range platformAccounts {
-		_, _ = Pool.Exec(ctx, `
-			INSERT INTO platform_accounts (user_id, platform, display_name, status)
-			VALUES ($1, $2, $3, 'connected')
-		`, u.ID, pa.platform, pa.displayName)
-	}
-
 	return &u, nil
-}
-
-func indexOrLength(s, substr string) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == '@' {
-			return i
-		}
-	}
-	return len(s)
 }
 
 func GetSummaryForUser(ctx context.Context, userID string) (*MetricsSummary, error) {
@@ -268,15 +273,17 @@ func UpsertOAuthToken(ctx context.Context, platformAccountID string, accessToken
 	return err
 }
 
-func GetContentItemsForUser(ctx context.Context, userID string, limit int) ([]ContentItem, error) {
+func GetContentItemsForUser(ctx context.Context, userID, platform string, since time.Time, limit int) ([]ContentItem, error) {
 	query := `
 		SELECT id, user_id, platform, title, engagement, reach, recorded_at
 		FROM content_items
 		WHERE user_id = $1
+		  AND ($2 = '' OR $2 = 'all' OR platform = $2)
+		  AND recorded_at >= $3
 		ORDER BY engagement DESC, reach DESC
-		LIMIT $2
+		LIMIT $4
 	`
-	rows, err := Pool.Query(ctx, query, userID, limit)
+	rows, err := Pool.Query(ctx, query, userID, platform, since, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -301,14 +308,14 @@ func InsertContentItem(ctx context.Context, userID, platform, title string, enga
 	return err
 }
 
-func GetAudienceInsightsForUser(ctx context.Context, userID string) ([]AudienceInsight, error) {
+func GetAudienceInsightsForUser(ctx context.Context, userID string, since time.Time) ([]AudienceInsight, error) {
 	query := `
-		SELECT id, user_id, category, label, value, recorded_at
+		SELECT DISTINCT ON (category, label) id, user_id, category, label, value, recorded_at
 		FROM audience_insights
-		WHERE user_id = $1
-		ORDER BY recorded_at DESC, category, label
+		WHERE user_id = $1 AND recorded_at >= $2
+		ORDER BY category, label, recorded_at DESC
 	`
-	rows, err := Pool.Query(ctx, query, userID)
+	rows, err := Pool.Query(ctx, query, userID, since)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +342,7 @@ func UpsertAudienceInsight(ctx context.Context, userID, category, label string, 
 	return err
 }
 
-func GetTimeSeriesForUser(ctx context.Context, userID string, platform string) ([]TimeSeriesPoint, error) {
+func GetTimeSeriesForUser(ctx context.Context, userID string, platform string, days int) ([]TimeSeriesPoint, error) {
 	var query string
 	var rows pgx.Rows
 	var err error
@@ -345,23 +352,21 @@ func GetTimeSeriesForUser(ctx context.Context, userID string, platform string) (
 			SELECT t.metric_date, SUM(t.value) as value
 			FROM metrics_timeseries t
 			JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
-			WHERE t.user_id = $1 AND t.platform = $2
+			WHERE t.user_id = $1 AND t.platform = $2 AND t.metric_date >= CURRENT_DATE - ($3 - 1)
 			GROUP BY t.metric_date
 			ORDER BY t.metric_date ASC
-			LIMIT 14
 		`
-		rows, err = Pool.Query(ctx, query, userID, platform)
+		rows, err = Pool.Query(ctx, query, userID, platform, days)
 	} else {
 		query = `
 			SELECT t.metric_date, SUM(t.value) as value
 			FROM metrics_timeseries t
 			JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
-			WHERE t.user_id = $1
+			WHERE t.user_id = $1 AND t.metric_date >= CURRENT_DATE - ($2 - 1)
 			GROUP BY t.metric_date
 			ORDER BY t.metric_date ASC
-			LIMIT 14
 		`
-		rows, err = Pool.Query(ctx, query, userID)
+		rows, err = Pool.Query(ctx, query, userID, days)
 	}
 
 	if err != nil {
@@ -385,7 +390,7 @@ func GetTimeSeriesForUser(ctx context.Context, userID string, platform string) (
 	if len(points) == 0 {
 		// Fallback to empty list or last 7 days placeholder dates if no data yet
 		now := time.Now()
-		for i := 6; i >= 0; i-- {
+		for i := days - 1; i >= 0; i-- {
 			points = append(points, TimeSeriesPoint{
 				Date:  now.AddDate(0, 0, -i).Format("2006-01-02"),
 				Value: 0,
@@ -441,14 +446,31 @@ func GetPlatformAccountForUser(ctx context.Context, userID, platform string) (*P
 	return &pa, nil
 }
 
+func GetPlatformAccountByID(ctx context.Context, accountID string) (*PlatformAccount, error) {
+	query := `SELECT id, user_id, platform, display_name, status, created_at FROM platform_accounts WHERE id = $1`
+	var pa PlatformAccount
+	err := Pool.QueryRow(ctx, query, accountID).Scan(&pa.ID, &pa.UserID, &pa.Platform, &pa.DisplayName, &pa.Status, &pa.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &pa, nil
+}
+
 func CreatePlatformAccount(ctx context.Context, userID, platform, displayName string) (*PlatformAccount, error) {
+	return CreatePlatformAccountWithStatus(ctx, userID, platform, displayName, "connected")
+}
+
+func CreatePlatformAccountWithStatus(ctx context.Context, userID, platform, displayName, status string) (*PlatformAccount, error) {
 	query := `
 		INSERT INTO platform_accounts (user_id, platform, display_name, status)
-		VALUES ($1, $2, $3, 'connected')
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, user_id, platform, display_name, status, created_at
 	`
 	var pa PlatformAccount
-	err := Pool.QueryRow(ctx, query, userID, platform, displayName).Scan(
+	err := Pool.QueryRow(ctx, query, userID, platform, displayName, status).Scan(
 		&pa.ID, &pa.UserID, &pa.Platform, &pa.DisplayName, &pa.Status, &pa.CreatedAt,
 	)
 	if err != nil {
@@ -457,12 +479,25 @@ func CreatePlatformAccount(ctx context.Context, userID, platform, displayName st
 	return &pa, nil
 }
 
+func UpdatePlatformAccountName(ctx context.Context, accountID, userID, displayName string) error {
+	_, err := Pool.Exec(ctx, `UPDATE platform_accounts SET display_name = $1 WHERE id = $2 AND user_id = $3`, displayName, accountID, userID)
+	return err
+}
+
 func UpdatePlatformAccountStatus(ctx context.Context, accountID, userID, status string) (bool, error) {
 	tag, err := Pool.Exec(ctx, `
 		UPDATE platform_accounts
 		SET status = $1
 		WHERE id = $2 AND user_id = $3
 	`, status, accountID, userID)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
+func UpdatePlatformAccountStatusByID(ctx context.Context, accountID, status string) (bool, error) {
+	tag, err := Pool.Exec(ctx, `UPDATE platform_accounts SET status = $1 WHERE id = $2`, status, accountID)
 	if err != nil {
 		return false, err
 	}

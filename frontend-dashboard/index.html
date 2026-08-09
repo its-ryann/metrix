@@ -81,11 +81,22 @@
                             <input class="input-inset pl-10 focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="text" id="name" placeholder="Creator Name" autocomplete="name">
                         </div>
                     </div>
-                    <div class="space-y-2">
+                    <div class="space-y-2" id="password-group">
                         <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="email">EMAIL ADDRESS</label>
                         <div class="relative">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">mail</span>
                             <input class="input-inset pl-10 focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="email" id="email" placeholder="creator@metrix.com" required autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 hidden" id="reset-password-group">
+                        <div class="space-y-2">
+                            <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="reset-new-password">NEW PASSWORD</label>
+                            <input class="input-inset focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="reset-new-password" placeholder="At least 8 characters" minlength="8" autocomplete="new-password">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="reset-confirm-password">CONFIRM NEW PASSWORD</label>
+                            <input class="input-inset focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="reset-confirm-password" placeholder="Repeat your new password" minlength="8" autocomplete="new-password">
                         </div>
                     </div>
                     <div class="space-y-2">
@@ -268,7 +279,7 @@
                             </article>
                             <article class="glass-card rounded-xl p-5 flex flex-col gap-3 group hover:bg-white/5 transition-colors">
                                 <div class="flex justify-between items-start">
-                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Follower Growth</h3>
+                                    <h3 class="text-[11px] uppercase tracking-widest text-on-surface-variant font-semibold">Reach Growth</h3>
                                     <span id="kpi-growth-delta" class="delta-badge">--</span>
                                 </div>
                                 <div id="kpi-growth" class="text-3xl font-bold tracking-tight">--</div>
