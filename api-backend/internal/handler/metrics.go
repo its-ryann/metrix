@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -66,11 +67,13 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 	previousStart := windowStart.AddDate(0, 0, -days)
 	current, err := db.GetMetricWindow(r.Context(), userID, platform, windowStart, windowEnd)
 	if err != nil {
+		log.Printf("metrics summary current window failed for user %s, platform %q: %v", userID, platform, err)
 		http.Error(w, `{"error":"Failed to fetch metrics summary"}`, http.StatusInternalServerError)
 		return
 	}
 	previous, err := db.GetMetricWindow(r.Context(), userID, platform, previousStart, windowStart)
 	if err != nil {
+		log.Printf("metrics summary comparison window failed for user %s, platform %q: %v", userID, platform, err)
 		http.Error(w, `{"error":"Failed to fetch metrics summary"}`, http.StatusInternalServerError)
 		return
 	}
