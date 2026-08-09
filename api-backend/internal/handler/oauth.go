@@ -2,12 +2,12 @@ package handler
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
