@@ -31,13 +31,20 @@ func main() {
 	mux.HandleFunc("/api/v1/auth/register", handler.Register)
 	mux.HandleFunc("/api/v1/auth/login", handler.Login)
 
+	// Auth Endpoints (Protected)
+	mux.HandleFunc("/api/v1/auth/me", handler.AuthMiddleware(handler.GetMe))
+	mux.HandleFunc("/api/v1/auth/change-password", handler.AuthMiddleware(handler.ChangePassword))
+	mux.HandleFunc("/api/v1/auth/account", handler.AuthMiddleware(handler.DeleteAccount))
+	mux.HandleFunc("/api/v1/settings/profile", handler.AuthMiddleware(handler.UpdateProfile))
+
 	// Metrics Endpoints (Protected)
 	mux.HandleFunc("/api/v1/metrics/summary", handler.AuthMiddleware(handler.GetSummary))
 	mux.HandleFunc("/api/v1/metrics/timeseries", handler.AuthMiddleware(handler.GetTimeSeries))
 	mux.HandleFunc("/api/v1/metrics/top-content", handler.AuthMiddleware(handler.GetTopContent))
 
 	// Platform & Audience Endpoints (Protected)
-	mux.HandleFunc("/api/v1/platform-accounts", handler.AuthMiddleware(handler.GetPlatformAccounts))
+	mux.HandleFunc("/api/v1/platform-accounts", handler.AuthMiddleware(handler.PlatformAccountsRouter))
+	mux.HandleFunc("/api/v1/platform-accounts/", handler.AuthMiddleware(handler.HandlePlatformAccountAction))
 	mux.HandleFunc("/api/v1/audience/insights", handler.AuthMiddleware(handler.GetAudienceInsights))
 
 	port := os.Getenv("PORT")

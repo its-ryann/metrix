@@ -73,6 +73,7 @@
             <div class="glass-panel rounded-xl p-8 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent"></div>
                 <form id="login-form" class="space-y-5">
+                    <h2 id="auth-title" class="text-2xl font-bold text-white">Sign In</h2>
                     <div class="space-y-2 hidden" id="name-group">
                         <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="name">FULL NAME</label>
                         <div class="relative">
@@ -164,7 +165,7 @@
             </nav>
 
             <div class="px-4 mt-auto space-y-3">
-                <button class="w-full btn-gradient text-white rounded-lg py-2.5 font-semibold text-xs tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(77,142,255,0.3)]">
+                <button id="upgrade-pro-btn" class="w-full btn-gradient text-white rounded-lg py-2.5 font-semibold text-xs tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(77,142,255,0.3)]">
                     <span class="material-symbols-outlined text-[18px]">star</span>
                     Upgrade Pro
                 </button>
@@ -183,7 +184,7 @@
                     <span class="md:hidden text-lg font-extrabold gradient-text">Metrix</span>
                     <div class="hidden md:block relative w-64">
                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-                        <input class="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container/60 transition-all placeholder:text-outline-variant"
+                        <input id="global-search" class="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg pl-10 pr-4 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container/60 transition-all placeholder:text-outline-variant"
                             placeholder="Search analytics..." type="text">
                     </div>
                     <div class="flex items-center gap-2 bg-tertiary-container/15 text-tertiary px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider border border-tertiary-container/20">
@@ -193,7 +194,10 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <span id="user-greeting" class="hidden sm:block text-sm text-on-surface-variant">Welcome back</span>
-                    <button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors">
+                    <button id="refresh-btn" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors" title="Refresh data">
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">refresh</span>
+                    </button>
+                    <button id="notifications-btn" class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors" title="Notifications">
                         <span class="material-symbols-outlined">notifications</span>
                     </button>
                     <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary-container text-white flex items-center justify-center text-xs font-bold border border-white/20 select-none"></div>
@@ -322,7 +326,7 @@
                     <!-- Platforms View -->
                     <div id="view-platforms" class="view hidden">
                         <div id="platform-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-                        <button class="glass-card rounded-xl p-6 mt-6 w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-outline-variant/40 hover:bg-surface-variant/20 transition-colors group cursor-pointer min-h-[180px]">
+                        <button id="open-connect-btn" class="glass-card rounded-xl p-6 mt-6 w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-outline-variant/40 hover:bg-surface-variant/20 transition-colors group cursor-pointer min-h-[180px]">
                             <div class="w-14 h-14 rounded-full bg-surface-variant flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-container transition-all duration-300">
                                 <span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-primary-container text-[30px]">add</span>
                             </div>
@@ -357,7 +361,7 @@
                             </div>
                             <div class="border-t border-white/10 bg-surface-container-lowest/30 px-5 py-4 flex items-center justify-between">
                                 <span class="text-sm text-outline">Showing top performing content</span>
-                                <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-bright transition-colors border border-white/5">
+                                <button id="export-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold hover:bg-surface-bright transition-colors border border-white/5">
                                     <span class="material-symbols-outlined text-[16px]">download</span>
                                     Export
                                 </button>
@@ -409,63 +413,83 @@
                                     <h2 class="text-xl font-semibold mt-3">Unlock Advanced Analytics</h2>
                                     <p class="text-sm text-on-surface-variant mt-1">Get deeper insights with predictive modeling, custom dashboards, and unlimited API access.</p>
                                 </div>
-                                <button class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold text-sm shadow-[0_0_20px_rgba(173,198,255,0.3)]">
+                                <button id="upgrade-pro-cta" class="btn-gradient text-white px-6 py-3 rounded-lg font-semibold text-sm shadow-[0_0_20px_rgba(173,198,255,0.3)]">
                                     Upgrade to Metrix Pro
                                 </button>
                             </div>
                         </section>
 
                         <section>
-                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">Configuration</h3>
-                            <div class="glass-card rounded-xl overflow-hidden divide-y divide-white/5">
-                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
-                                            <span class="material-symbols-outlined">person</span>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold">Profile Settings</div>
-                                            <div class="text-xs text-on-surface-variant mt-0.5">Personal info &amp; preferences</div>
-                                        </div>
+                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">Profile</h3>
+                            <form id="profile-form" class="glass-card rounded-xl p-6 md:p-8 space-y-5">
+                                <div class="flex items-center gap-4">
+                                    <div id="settings-avatar" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary-container text-white flex items-center justify-center text-xl font-bold border border-white/20 shrink-0"></div>
+                                    <div>
+                                        <div class="text-lg font-semibold" id="settings-name-preview">--</div>
+                                        <div class="text-sm text-on-surface-variant" id="settings-email">--</div>
                                     </div>
-                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
                                 </div>
-                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
-                                            <span class="material-symbols-outlined">notifications</span>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold">Notifications</div>
-                                            <div class="text-xs text-on-surface-variant mt-0.5">Alerts &amp; daily digests</div>
-                                        </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="profile-name">DISPLAY NAME</label>
+                                        <input class="field-input focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="text" id="profile-name" placeholder="Your name" required>
                                     </div>
-                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
-                                </div>
-                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
-                                            <span class="material-symbols-outlined">security</span>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold">Security</div>
-                                            <div class="text-xs text-on-surface-variant mt-0.5">2FA &amp; active sessions</div>
-                                        </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="profile-email">EMAIL</label>
+                                        <input class="field-input opacity-70 cursor-not-allowed focus:outline-none" type="email" id="profile-email" disabled>
                                     </div>
-                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
                                 </div>
-                                <div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors group cursor-pointer">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container/20 transition-colors">
-                                            <span class="material-symbols-outlined">api</span>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold">API Connections</div>
-                                            <div class="text-xs text-on-surface-variant mt-0.5">Keys &amp; webhooks</div>
-                                        </div>
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity">SAVE CHANGES</button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section>
+                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">Security</h3>
+                            <form id="password-form" class="glass-card rounded-xl p-6 md:p-8 space-y-5">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="current-password">CURRENT PASSWORD</label>
+                                        <input class="field-input focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="current-password" placeholder="••••••••" required>
                                     </div>
-                                    <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="new-password">NEW PASSWORD</label>
+                                        <input class="field-input focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="new-password" placeholder="Min. 8 characters" minlength="8" required>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-semibold tracking-wider text-on-surface-variant" for="confirm-password">CONFIRM NEW PASSWORD</label>
+                                        <input class="field-input focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="password" id="confirm-password" placeholder="Repeat new password" minlength="8" required>
+                                    </div>
                                 </div>
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity">UPDATE PASSWORD</button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section>
+                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">API Connections</h3>
+                            <div class="glass-card rounded-xl p-6">
+                                <div id="settings-api-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="text-sm text-on-surface-variant flex items-center gap-2"><div class="spinner"></div></div>
+                                </div>
+                                <div class="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
+                                    <p class="text-sm text-on-surface-variant">Add or remove data sources from the <button id="goto-platforms" class="text-primary font-semibold hover:underline">Platforms</button> page.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h3 class="text-[11px] uppercase tracking-widest text-outline font-semibold px-1 mb-3">Danger Zone</h3>
+                            <div class="glass-card rounded-xl p-6 border border-red-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <div class="text-sm font-semibold text-red-300">Delete Account</div>
+                                    <p class="text-xs text-on-surface-variant mt-1">Permanently remove your account and all associated analytics data. This cannot be undone.</p>
+                                </div>
+                                <button id="delete-account-btn" class="px-5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/40 text-red-300 text-xs font-bold tracking-wider hover:bg-red-500/20 transition-colors shrink-0">
+                                    DELETE ACCOUNT
+                                </button>
                             </div>
                         </section>
                     </div>
@@ -496,7 +520,85 @@
                 Settings
             </a>
         </nav>
+
+        <!-- Connect Platform Modal -->
+        <div id="connect-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-close-modal></div>
+            <div class="relative glass-card rounded-2xl w-full max-w-md p-6 md:p-8 z-10 max-h-[90vh] overflow-y-auto">
+                <button id="modal-close-btn" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-white/10 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+
+                <div id="modal-step-pick">
+                    <h3 class="text-xl font-bold tracking-tight">Connect a platform</h3>
+                    <p class="text-sm text-on-surface-variant mt-1">Authorize Metrix to pull your analytics read-only.</p>
+                    <div class="mt-6 space-y-3">
+                        <button class="connect-option w-full flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-white/10 hover:border-primary/50 hover:bg-surface-container transition-colors group" data-platform="youtube">
+                            <div class="w-11 h-11 rounded-full bg-[#ff4e45]/15 flex items-center justify-center text-[#ff6b64]"><span class="material-symbols-outlined">play_circle</span></div>
+                            <div class="flex-1 text-left">
+                                <div class="text-sm font-semibold">YouTube</div>
+                                <div class="text-xs text-on-surface-variant">Channel analytics</div>
+                            </div>
+                            <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                        </button>
+                        <button class="connect-option w-full flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-white/10 hover:border-primary/50 hover:bg-surface-container transition-colors group" data-platform="instagram">
+                            <div class="w-11 h-11 rounded-full bg-[#e1306c]/15 flex items-center justify-center text-[#ff5c8f]"><span class="material-symbols-outlined">photo_camera</span></div>
+                            <div class="flex-1 text-left">
+                                <div class="text-sm font-semibold">Instagram</div>
+                                <div class="text-xs text-on-surface-variant">Profile &amp; reels insights</div>
+                            </div>
+                            <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                        </button>
+                        <button class="connect-option w-full flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-white/10 hover:border-primary/50 hover:bg-surface-container transition-colors group" data-platform="tiktok">
+                            <div class="w-11 h-11 rounded-full bg-[#4edea3]/15 flex items-center justify-center text-[#4edea3]"><span class="material-symbols-outlined">music_note</span></div>
+                            <div class="flex-1 text-left">
+                                <div class="text-sm font-semibold">TikTok</div>
+                                <div class="text-xs text-on-surface-variant">Creator insights</div>
+                            </div>
+                            <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="modal-step-consent" class="hidden">
+                    <div class="flex items-center gap-3">
+                        <div id="consent-platform-icon" class="w-11 h-11 rounded-full bg-primary-container/15 flex items-center justify-center text-primary"><span class="material-symbols-outlined">hub</span></div>
+                        <div>
+                            <h3 class="text-xl font-bold tracking-tight">Authorize Metrix</h3>
+                            <p class="text-sm text-on-surface-variant">Connecting <span id="consent-platform-name" class="text-primary font-semibold">YouTube</span></p>
+                        </div>
+                    </div>
+                    <div class="mt-6 rounded-xl bg-surface-container-lowest border border-white/10 p-4 space-y-3 text-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary text-[20px]">visibility</span>
+                            <span class="text-on-surface">Read-only access to your analytics</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary text-[20px]">bar_chart</span>
+                            <span class="text-on-surface">View audience, engagement &amp; growth</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-outline text-[20px]">block</span>
+                            <span class="text-on-surface-variant">Never posts or modifies your content</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 space-y-2">
+                        <input class="field-input focus:outline-none focus:ring-2 focus:ring-primary/70 focus:border-primary/60" type="text" id="connect-display-name" placeholder="Display name (optional)">
+                    </div>
+                    <div class="mt-6 flex gap-3">
+                        <button id="consent-cancel-btn" class="flex-1 px-4 py-3 rounded-lg border border-white/10 text-on-surface-variant text-xs font-bold tracking-wider hover:bg-white/5 transition-colors">CANCEL</button>
+                        <button id="consent-authorize-btn" class="btn-gradient flex-1 px-4 py-3 rounded-lg text-white text-xs font-bold tracking-wider flex items-center justify-center gap-2">
+                            AUTHORIZE
+                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Toasts -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[80] flex flex-col gap-3 w-[320px] max-w-[90vw]"></div>
 
     <script src="app.js"></script>
 </body>
