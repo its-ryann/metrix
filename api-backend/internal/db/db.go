@@ -45,13 +45,6 @@ type TimeSeriesPoint struct {
 	Value int    `json:"value"`
 }
 
-type ContentItem struct {
-	Title      string  `json:"title"`
-	Platform   string  `json:"platform"`
-	Engagement float64 `json:"engagement"`
-	Reach      int     `json:"reach"`
-}
-
 func InitDB(ctx context.Context, connStr string) error {
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
@@ -171,6 +164,175 @@ func GetSummaryForUser(ctx context.Context, userID string) (*MetricsSummary, err
 		return nil, err
 	}
 	return &ms, nil
+}
+
+type PasswordResetToken struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Used      bool      `json:"used"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func CreatePasswordResetToken(ctx context.Context, userID string) (*PasswordResetToken, error) {
+	token := fmt.Sprintf("%s-%d", generateResetToken(), time.Now().UnixNano())
+	expiresAt := time.Now().Add(1 * time.Hour)
+	query := `
+		INSERT INTO password_reset_tokens (user_id, token, expires_at)
+		VALUES ($1, $2, $3)
+		RETURNING id, user_id, token, expires_at, used, created_at
+	`
+	var t PasswordResetToken
+	err := Pool.QueryRow(ctx, query, userID, token, expiresAt).Scan(
+		&t.ID, &t.UserID, &t.Token, &t.ExpiresAt, &t.Used, &t.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reset token: %w", err)
+	}
+	return &t, nil
+}
+
+func GetUserByResetToken(ctx context.Context, token string) (*User, error) {
+	query := `
+		SELECT u.id, u.email, u.password_hash, u.name, u.created_at
+		FROM users u
+		JOIN password_reset_tokens pt ON pt.user_id = u.id
+		WHERE pt.token = $1 AND pt.expires_at > NOW() AND pt.used = FALSE
+	`
+	var u User
+	err := Pool.QueryRow(ctx, query, token).Scan(
+		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
+func InvalidateResetToken(ctx context.Context, token string) error {
+	_, err := Pool.Exec(ctx, `UPDATE password_reset_tokens SET used = TRUE WHERE token = $1`, token)
+	return err
+}
+
+func generateResetToken() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 24)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+type OAuthToken struct {
+	ID                string    `json:"id"`
+	PlatformAccountID string    `json:"platform_account_id"`
+	AccessToken       string    `json:"access_token"`
+	RefreshToken      string    `json:"refresh_token"`
+	TokenExpiresAt    time.Time `json:"token_expires_at"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+type ContentItem struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"-"`
+	Platform   string    `json:"platform"`
+	Title      string    `json:"title"`
+	Engagement float64   `json:"engagement"`
+	Reach      int       `json:"reach"`
+	RecordedAt time.Time `json:"recorded_at"`
+}
+
+type AudienceInsight struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"-"`
+	Category   string    `json:"category"`
+	Label      string    `json:"label"`
+	Value      float64   `json:"value"`
+	RecordedAt time.Time `json:"recorded_at"`
+}
+
+func UpsertOAuthToken(ctx context.Context, platformAccountID string, accessToken, refreshToken string, expiresAt time.Time) error {
+	_, err := Pool.Exec(ctx, `
+		INSERT INTO platform_oauth_tokens (platform_account_id, access_token, refresh_token, token_expires_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (platform_account_id)
+		DO UPDATE SET
+			access_token = EXCLUDED.access_token,
+			refresh_token = EXCLUDED.refresh_token,
+			token_expires_at = EXCLUDED.token_expires_at
+	`, platformAccountID, accessToken, refreshToken, expiresAt)
+	return err
+}
+
+func GetContentItemsForUser(ctx context.Context, userID string, limit int) ([]ContentItem, error) {
+	query := `
+		SELECT id, user_id, platform, title, engagement, reach, recorded_at
+		FROM content_items
+		WHERE user_id = $1
+		ORDER BY engagement DESC, reach DESC
+		LIMIT $2
+	`
+	rows, err := Pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []ContentItem
+	for rows.Next() {
+		var ci ContentItem
+		if err := rows.Scan(&ci.ID, &ci.UserID, &ci.Platform, &ci.Title, &ci.Engagement, &ci.Reach, &ci.RecordedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, ci)
+	}
+	return items, nil
+}
+
+func InsertContentItem(ctx context.Context, userID, platform, title string, engagement float64, reach int) error {
+	_, err := Pool.Exec(ctx, `
+		INSERT INTO content_items (user_id, platform, title, engagement, reach, recorded_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+	`, userID, platform, title, engagement, reach)
+	return err
+}
+
+func GetAudienceInsightsForUser(ctx context.Context, userID string) ([]AudienceInsight, error) {
+	query := `
+		SELECT id, user_id, category, label, value, recorded_at
+		FROM audience_insights
+		WHERE user_id = $1
+		ORDER BY recorded_at DESC, category, label
+	`
+	rows, err := Pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var insights []AudienceInsight
+	for rows.Next() {
+		var ai AudienceInsight
+		if err := rows.Scan(&ai.ID, &ai.UserID, &ai.Category, &ai.Label, &ai.Value, &ai.RecordedAt); err != nil {
+			return nil, err
+		}
+		insights = append(insights, ai)
+	}
+	return insights, nil
+}
+
+func UpsertAudienceInsight(ctx context.Context, userID, category, label string, value float64) error {
+	_, err := Pool.Exec(ctx, `
+		INSERT INTO audience_insights (user_id, category, label, value, recorded_at)
+		VALUES ($1, $2, $3, $4, NOW())
+		ON CONFLICT (user_id, category, label, DATE(recorded_at))
+		DO UPDATE SET value = EXCLUDED.value, recorded_at = NOW()
+	`, userID, category, label, value)
+	return err
 }
 
 func GetTimeSeriesForUser(ctx context.Context, userID string, platform string) ([]TimeSeriesPoint, error) {

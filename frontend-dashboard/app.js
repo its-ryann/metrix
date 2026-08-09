@@ -10,6 +10,7 @@ const state = {
     charts: {},
     loading: false,
     isRegistering: false,
+    isResettingPassword: false,
     connectedPlatforms: [],
     lastContentData: []
 };
@@ -108,10 +109,17 @@ function setupEventListeners() {
 
     loginForm.addEventListener("submit", handleAuthSubmit);
     logoutBtn.addEventListener("click", handleLogout);
-    authToggleBtn.addEventListener("click", toggleAuthMode);
+    authToggleBtn.addEventListener("click", () => {
+        if (state.isResettingPassword) {
+            showLoginForm();
+        } else {
+            toggleAuthMode();
+        }
+    });
     if (forgotLink) {
-        forgotLink.addEventListener("click", () => {
-            showInlineNotice("Password reset isn't available yet. Contact support@metrix.com.");
+        forgotLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            showForgotPassword();
         });
     }
 
@@ -141,6 +149,12 @@ function setupEventListeners() {
     });
     if (platformList) platformList.addEventListener("click", handlePlatformAction);
 
+    if (forgotLink) {
+        forgotLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            showForgotPassword();
+        });
+    }
     if (profileForm) profileForm.addEventListener("submit", handleProfileSubmit);
     if (passwordForm) passwordForm.addEventListener("submit", handlePasswordSubmit);
     if (deleteAccountBtn) deleteAccountBtn.addEventListener("click", handleDeleteAccount);
@@ -159,17 +173,22 @@ function showInlineNotice(message) {
 
 function toggleAuthMode() {
     state.isRegistering = !state.isRegistering;
+    state.isResettingPassword = false;
     if (state.isRegistering) {
         if (authTitle) authTitle.textContent = "Create Account";
         if (authBtnLabel) authBtnLabel.textContent = "CREATE ACCOUNT";
         authToggleBtn.innerHTML = `Already have an account? <span class="text-primary font-semibold">Sign In</span>`;
+        authToggleBtn.onclick = showLoginForm;
         nameGroup.classList.remove("hidden");
     } else {
         if (authTitle) authTitle.textContent = "Sign In";
         if (authBtnLabel) authBtnLabel.textContent = "SIGN IN";
         authToggleBtn.innerHTML = `Don't have an account? <span class="text-primary font-semibold">Create Account</span>`;
+        authToggleBtn.onclick = toggleAuthMode;
         nameGroup.classList.add("hidden");
     }
+    const authNotice = document.getElementById("auth-notice");
+    if (authNotice) authNotice.classList.add("hidden");
 }
 
 function setAuthLoading(isLoading) {
@@ -182,8 +201,40 @@ function setAuthLoading(isLoading) {
 }
 
 function showLogin() {
+    state.isResettingPassword = false;
     loginOverlay.classList.remove("hidden");
     appContent.classList.add("hidden");
+}
+
+function showForgotPassword() {
+    state.isResettingPassword = true;
+    const authTitle = document.getElementById("auth-title");
+    const authBtnLabel = document.getElementById("auth-btn-label");
+    const authNotice = document.getElementById("auth-notice");
+    if (authTitle) authTitle.textContent = "Reset Password";
+    if (authBtnLabel) authBtnLabel.textContent = "SEND RESET LINK";
+    if (nameGroup) nameGroup.classList.add("hidden");
+    if (authToggleBtn) {
+        authToggleBtn.innerHTML = `<span class="text-primary font-semibold">Back to Sign In</span>`;
+    }
+    if (authNotice) {
+        authNotice.classList.remove("hidden");
+        authNotice.innerHTML = "Enter your email. If an account exists, we'll send a reset link.";
+        authNotice.className = "text-xs text-info bg-info-container/10 border border-info-container/20 rounded-lg px-3 py-2";
+    }
+}
+
+function showLoginForm() {
+    state.isRegistering = false;
+    state.isResettingPassword = false;
+    const authTitle = document.getElementById("auth-title");
+    const authBtnLabel = document.getElementById("auth-btn-label");
+    const authNotice = document.getElementById("auth-notice");
+    if (authTitle) authTitle.textContent = "Sign In";
+    if (authBtnLabel) authBtnLabel.textContent = "SIGN IN";
+    if (nameGroup) nameGroup.classList.add("hidden");
+    if (authToggleBtn) authToggleBtn.innerHTML = `Don't have an account? <span class="text-primary font-semibold">Create Account</span>`;
+    if (authNotice) authNotice.classList.add("hidden");
 }
 
 function showApp() {
@@ -234,6 +285,13 @@ async function fetchWithAuth(url, options = {}) {
 
 async function handleAuthSubmit(e) {
     e.preventDefault();
+    const authTitle = document.getElementById("auth-title");
+    if (authTitle && authTitle.textContent === "Reset Password") {
+        await handleResetRequest();
+        return;
+    }
+
+    // Registration or login flow
     setAuthLoading(true);
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -258,6 +316,34 @@ async function handleAuthSubmit(e) {
         localStorage.setItem("metrix_token", data.token);
         showApp();
         loadDashboardData();
+    } catch (err) {
+        showInlineNotice("Can't reach the backend. Check that the API is running.");
+    } finally {
+        setAuthLoading(false);
+    }
+}
+
+async function handleResetRequest() {
+    setAuthLoading(true);
+    const email = document.getElementById("email").value;
+    if (!email) {
+        alert("Please enter your email address.");
+        setAuthLoading(false);
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/reset-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || "Failed to send reset link.");
+            return;
+        }
+        showLoginForm();
+        toast(data.message || "Reset instructions sent to your email.", "success");
     } catch (err) {
         showInlineNotice("Can't reach the backend. Check that the API is running.");
     } finally {
@@ -728,18 +814,20 @@ async function authorizePlatform() {
     btn.disabled = true;
     btn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path></svg> AUTHORIZING...`;
     try {
-        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts`, {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/oauth/connect`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform: selectedPlatform, display_name: connectDisplayName.value.trim() })
+            body: JSON.stringify({ platform: selectedPlatform })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to connect platform");
-        const meta = PLATFORM_META[selectedPlatform] || { label: selectedPlatform };
         closeConnectModal();
-        toast(`${meta.label} connected successfully`, "success");
-        refreshConnectedPlatforms();
-        if (state.currentView === "platforms") fetchPlatforms();
+        toast("Redirecting to OAuth provider...", "info");
+        window.open(data.url, "_blank");
+        setTimeout(() => {
+            refreshConnectedPlatforms();
+            if (state.currentView === "platforms") fetchPlatforms();
+        }, 3000);
     } catch (err) {
         toast(err.message, "error");
     } finally {

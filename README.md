@@ -41,20 +41,23 @@ Metrix enforces a strict corporate security baseline across all deployment bound
 ## 🚀 Roadmap & Project Milestones
 
 ### Phase 1: Multi-Tenant Backend & Mock Data 🔄
-- [ ] Initialize modular workspace architecture (`api-backend`, `frontend-dashboard`, `data-pipeline`).
-- [ ] Design the relational PostgreSQL schema supporting multiple isolated creator accounts.
-- [ ] Establish Go REST API endpoints for user registration, JWT authentication, and mock metric generation.
-- [ ] Build baseline multi-container configurations for local execution via Docker Compose.
+- [x] Initialize modular workspace architecture (`api-backend`, `frontend-dashboard`, `data-pipeline`).
+- [x] Design the relational PostgreSQL schema supporting multiple isolated creator accounts.
+- [x] Establish Go REST API endpoints for user registration, JWT authentication, and mock metric generation.
+- [x] Build baseline multi-container configurations for local execution via Docker Compose.
 
 ### Phase 2: Frontend Dashboard & Pipeline Ingestion 🎨
-- [ ] Build a responsive web interface with data-driven graphs consuming the Go API payloads.
-- [ ] Develop Python telemetry scraping scripts with structural error catching to simulate platform data retrieval.
-- [ ] Integrate background cron workers to update user statistics at set intervals.
+- [x] Build a responsive web interface with data-driven graphs consuming the Go API payloads.
+- [x] Develop Python telemetry scraping scripts with structural error catching to simulate platform data retrieval.
+- [x] Integrate background cron workers to update user statistics at set intervals.
+- [x] Implement OAuth 2.0 connect flow for YouTube, Instagram, and TikTok with HMAC-signed state tokens.
+- [x] Add password reset flow with single-use expiring tokens.
+- [x] Ingest real content items and audience insights into persistent storage.
 
 ### Phase 3: Secure CI/CD & Guardrails 🛡️
-- [ ] Build GitHub Actions pipelines to automate testing, code linting, and formatting.
-- [ ] Integrate automated `Trivy` and `Gitleaks` vulnerability scanners into repository code push hooks.
-- [ ] Perform explicit permission testing on Go route middleware to guarantee multi-tenant token validation.
+- [x] Build GitHub Actions pipelines to automate testing, code linting, and formatting.
+- [x] Integrate automated `Trivy` filesystem and container vulnerability scanners, and `Gitleaks` secret detection, into repository code push hooks.
+- [x] Perform explicit permission testing on Go route middleware to guarantee multi-tenant token validation.
 
 ### Phase 4: Cloud-Native Scaling & Security Audit ☁️
 - [ ] Migrate single-host configs into declarative Kubernetes manifests (`deployment.yml`, `service.yml`).
