@@ -54,23 +54,38 @@ type MetricWindow struct {
 // platform and reporting window. It deliberately excludes disconnected sources.
 func GetMetricWindow(ctx context.Context, userID, platform string, from, to time.Time) (MetricWindow, error) {
 	var result MetricWindow
-	if err := Pool.QueryRow(ctx, `
-		SELECT COALESCE(SUM(t.value), 0)
-		FROM metrics_timeseries t
-		JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
-		WHERE t.user_id = $1
-		  AND ($2 = '' OR $2 = 'all' OR t.platform = $2)
-		  AND t.metric_date >= $3::date AND t.metric_date < $4::date
-	`, userID, platform, from, to).Scan(&result.TotalReach); err != nil {
+	var reachQuery, engagementQuery string
+	args := []any{userID, from, to}
+	if platform != "" && platform != "all" {
+		reachQuery = `
+			SELECT COALESCE(SUM(t.value), 0)
+			FROM metrics_timeseries t
+			JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
+			WHERE t.user_id = $1 AND t.platform = $2 AND t.metric_date >= $3::date AND t.metric_date < $4::date
+		`
+		engagementQuery = `
+			SELECT COALESCE(AVG(engagement), 0)
+			FROM content_items
+			WHERE user_id = $1 AND platform = $2 AND recorded_at >= $3 AND recorded_at < $4
+		`
+		args = []any{userID, platform, from, to}
+	} else {
+		reachQuery = `
+			SELECT COALESCE(SUM(t.value), 0)
+			FROM metrics_timeseries t
+			JOIN platform_accounts pa ON pa.user_id = t.user_id AND pa.platform = t.platform AND pa.status = 'connected'
+			WHERE t.user_id = $1 AND t.metric_date >= $2::date AND t.metric_date < $3::date
+		`
+		engagementQuery = `
+			SELECT COALESCE(AVG(engagement), 0)
+			FROM content_items
+			WHERE user_id = $1 AND recorded_at >= $2 AND recorded_at < $3
+		`
+	}
+	if err := Pool.QueryRow(ctx, reachQuery, args...).Scan(&result.TotalReach); err != nil {
 		return result, err
 	}
-	if err := Pool.QueryRow(ctx, `
-		SELECT COALESCE(AVG(engagement), 0)
-		FROM content_items
-		WHERE user_id = $1
-		  AND ($2 = '' OR $2 = 'all' OR platform = $2)
-		  AND recorded_at >= $3 AND recorded_at < $4
-	`, userID, platform, from, to).Scan(&result.AvgEngagement); err != nil {
+	if err := Pool.QueryRow(ctx, engagementQuery, args...).Scan(&result.AvgEngagement); err != nil {
 		return result, err
 	}
 	return result, nil

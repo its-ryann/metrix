@@ -485,6 +485,7 @@ async function loadDashboardData() {
 async function fetchSummary(params) {
     try {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/summary${params}`);
+        if (!res.ok) throw new Error("Failed to load dashboard summary");
         const data = await res.json();
 
         updateKPI("reach", data.total_reach, data.reach_delta);
@@ -502,10 +503,12 @@ function updateKPI(id, value, delta, isPercent = false) {
     const valEl = document.getElementById(`kpi-${id}`);
     const deltaEl = document.getElementById(`kpi-${id}-delta`);
     if (!valEl || !deltaEl) return;
-    valEl.textContent = isPercent ? `${value}%` : Number(value).toLocaleString();
-    const arrow = delta >= 0 ? "↑" : "↓";
-    deltaEl.textContent = `${arrow} ${Math.abs(delta)}%`;
-    deltaEl.className = `delta-badge ${delta >= 0 ? "positive" : "negative"}`;
+    const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+    const safeDelta = Number.isFinite(Number(delta)) ? Number(delta) : 0;
+    valEl.textContent = isPercent ? `${safeValue}%` : safeValue.toLocaleString();
+    const arrow = safeDelta >= 0 ? "↑" : "↓";
+    deltaEl.textContent = `${arrow} ${Math.abs(safeDelta)}%`;
+    deltaEl.className = `delta-badge ${safeDelta >= 0 ? "positive" : "negative"}`;
 }
 
 async function fetchTimeSeries(params) {
