@@ -3,9 +3,26 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"time"
 
 	"metrix/api-backend/internal/db"
 )
+
+func timeframeDays(r *http.Request) (int, error) {
+	value := r.URL.Query().Get("timeframe")
+	if value == "" {
+		return 28, nil
+	}
+	if len(value) < 2 || value[len(value)-1] != 'd' {
+		return 0, strconv.ErrSyntax
+	}
+	days, err := strconv.Atoi(value[:len(value)-1])
+	if err != nil || (days != 7 && days != 28 && days != 90) {
+		return 0, strconv.ErrSyntax
+	}
+	return days, nil
+}
 
 type SummaryResponse struct {
 	TotalReach     int     `json:"total_reach"`
@@ -38,30 +55,33 @@ func GetSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	history, err := db.GetSummaryHistory(r.Context(), userID, 2)
+	days, err := timeframeDays(r)
+	if err != nil {
+		http.Error(w, `{"error":"timeframe must be one of 7d, 28d, or 90d"}`, http.StatusBadRequest)
+		return
+	}
+	platform := r.URL.Query().Get("platform")
+	windowEnd := time.Now().Add(24 * time.Hour)
+	windowStart := time.Now().AddDate(0, 0, -days+1)
+	previousStart := windowStart.AddDate(0, 0, -days)
+	current, err := db.GetMetricWindow(r.Context(), userID, platform, windowStart, windowEnd)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch metrics summary"}`, http.StatusInternalServerError)
 		return
 	}
-	if len(history) == 0 {
-		res := SummaryResponse{}
-		_ = json.NewEncoder(w).Encode(res)
+	previous, err := db.GetMetricWindow(r.Context(), userID, platform, previousStart, windowStart)
+	if err != nil {
+		http.Error(w, `{"error":"Failed to fetch metrics summary"}`, http.StatusInternalServerError)
 		return
 	}
-
-	latest := history[0]
 	res := SummaryResponse{
-		TotalReach:     latest.TotalReach,
-		AvgEngagement:  latest.AvgEngagement,
-		FollowerGrowth: latest.FollowerGrowth,
+		TotalReach:     current.TotalReach,
+		AvgEngagement:  current.AvgEngagement,
+		FollowerGrowth: current.TotalReach - previous.TotalReach,
+		ReachDelta:     percentDelta(float64(current.TotalReach), float64(previous.TotalReach)),
+		EngageDelta:    percentDelta(current.AvgEngagement, previous.AvgEngagement),
 	}
-
-	if len(history) > 1 {
-		prev := history[1]
-		res.ReachDelta = percentDelta(float64(latest.TotalReach), float64(prev.TotalReach))
-		res.EngageDelta = percentDelta(latest.AvgEngagement, prev.AvgEngagement)
-		res.GrowthDelta = percentDelta(float64(latest.FollowerGrowth), float64(prev.FollowerGrowth))
-	}
+	res.GrowthDelta = res.ReachDelta
 
 	_ = json.NewEncoder(w).Encode(res)
 }
@@ -77,8 +97,13 @@ func GetTimeSeries(w http.ResponseWriter, r *http.Request) {
 	}
 
 	platform := r.URL.Query().Get("platform")
+	days, err := timeframeDays(r)
+	if err != nil {
+		http.Error(w, `{"error":"timeframe must be one of 7d, 28d, or 90d"}`, http.StatusBadRequest)
+		return
+	}
 
-	points, err := db.GetTimeSeriesForUser(r.Context(), userID, platform)
+	points, err := db.GetTimeSeriesForUser(r.Context(), userID, platform, days)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch timeseries data"}`, http.StatusInternalServerError)
 		return
@@ -102,6 +127,12 @@ func GetTopContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	days, err := timeframeDays(r)
+	if err != nil {
+		http.Error(w, `{"error":"timeframe must be one of 7d, 28d, or 90d"}`, http.StatusBadRequest)
+		return
+	}
+	platform := r.URL.Query().Get("platform")
 	connected, err := db.GetConnectedPlatforms(r.Context(), userID)
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch platforms"}`, http.StatusInternalServerError)
@@ -110,7 +141,7 @@ func GetTopContent(w http.ResponseWriter, r *http.Request) {
 
 	var contentItems []db.ContentItem
 	if len(connected) > 0 {
-		contentItems, err = db.GetContentItemsForUser(r.Context(), userID, 20)
+		contentItems, err = db.GetContentItemsForUser(r.Context(), userID, platform, time.Now().AddDate(0, 0, -days), 20)
 		if err != nil {
 			http.Error(w, `{"error":"Failed to fetch content items"}`, http.StatusInternalServerError)
 			return

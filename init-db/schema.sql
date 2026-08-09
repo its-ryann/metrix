@@ -82,3 +82,10 @@ CREATE TABLE IF NOT EXISTS audience_insights (
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, category, label, recorded_at)
 );
+
+-- These indexes also make deployments against an existing database compatible
+-- with the upsert operations used by the API and collector.
+CREATE UNIQUE INDEX IF NOT EXISTS platform_oauth_tokens_account_idx
+    ON platform_oauth_tokens (platform_account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS metrics_timeseries_user_platform_date_idx
+    ON metrics_timeseries (user_id, platform, metric_date);
