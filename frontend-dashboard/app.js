@@ -59,6 +59,7 @@ const pageSubtitle = document.getElementById("page-subtitle");
 const filterBar = document.getElementById("filter-bar");
 const refreshBtn = document.getElementById("refresh-btn");
 const notificationsBtn = document.getElementById("notifications-btn");
+const helpBtn = document.getElementById("help-btn");
 const upgradeProBtn = document.getElementById("upgrade-pro-btn");
 const upgradeProCta = document.getElementById("upgrade-pro-cta");
 const openConnectBtn = document.getElementById("open-connect-btn");
@@ -74,6 +75,11 @@ const gotoPlatforms = document.getElementById("goto-platforms");
 const exportBtn = document.getElementById("export-btn");
 const globalSearch = document.getElementById("global-search");
 const platformList = document.getElementById("platform-list");
+const contentFilterBtn = document.getElementById("content-filter-btn");
+const contentFilterLabel = document.getElementById("content-filter-label");
+const contentFilterMenu = document.getElementById("content-filter-menu");
+const contentCountEl = document.getElementById("content-count");
+let contentPlatformFilter = "all";
 
 function init() {
     setupEventListeners();
@@ -141,6 +147,9 @@ function setupEventListeners() {
     if (notificationsBtn) notificationsBtn.addEventListener("click", () => {
         toast("You're all caught up — no new notifications.", "info");
     });
+    if (helpBtn) helpBtn.addEventListener("click", () => {
+        toast("Metrix documentation is coming soon. Reach out via the support email in the meantime.", "info");
+    });
     if (upgradeProBtn) upgradeProBtn.addEventListener("click", () => {
         toast("Metrix Pro is coming soon. Stay tuned!", "info");
     });
@@ -172,6 +181,29 @@ function setupEventListeners() {
     if (gotoPlatforms) gotoPlatforms.addEventListener("click", () => switchView("platforms"));
     if (exportBtn) exportBtn.addEventListener("click", exportContentCSV);
     if (globalSearch) globalSearch.addEventListener("input", filterContent);
+
+    if (contentFilterBtn && contentFilterMenu) {
+        contentFilterBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            contentFilterMenu.classList.toggle("hidden");
+        });
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest("#content-filter-wrap")) contentFilterMenu.classList.add("hidden");
+        });
+        contentFilterMenu.querySelectorAll(".filter-option").forEach(btn => {
+            btn.addEventListener("click", () => {
+                contentPlatformFilter = btn.dataset.platform;
+                contentFilterMenu.classList.add("hidden");
+                if (contentFilterLabel) {
+                    contentFilterLabel.textContent = contentPlatformFilter === "all"
+                        ? "All Platforms"
+                        : (PLATFORM_META[contentPlatformFilter] || { label: contentPlatformFilter }).label;
+                }
+                renderContentRows(state.lastContentData);
+            });
+        });
+    }
+
     window.addEventListener("message", (event) => {
         if (event.data?.type !== "metrix-oauth-complete") return;
         refreshConnectedPlatforms();
@@ -496,7 +528,17 @@ async function fetchSummary(params) {
         const audienceEngagement = document.getElementById("kpi-audience-engagement");
         if (audienceTotal) audienceTotal.textContent = Number(data.total_reach).toLocaleString();
         if (audienceEngagement) audienceEngagement.textContent = `${data.avg_engagement}%`;
+        setDeltaPill(document.getElementById("kpi-audience-total-delta"), data.reach_delta);
+        setDeltaPill(document.getElementById("kpi-audience-engagement-delta"), data.engage_delta);
     } catch (err) { console.error(err); }
+}
+
+function setDeltaPill(el, delta) {
+    if (!el) return;
+    const safeDelta = Number.isFinite(Number(delta)) ? Number(delta) : 0;
+    const icon = safeDelta >= 0 ? "trending_up" : "trending_down";
+    el.innerHTML = `<span class="material-symbols-outlined">${icon}</span> ${Math.abs(safeDelta)}%`;
+    el.className = `delta-badge ${safeDelta >= 0 ? "positive" : "negative"} mb-1`;
 }
 
 function updateKPI(id, value, delta, isPercent = false) {
@@ -506,8 +548,8 @@ function updateKPI(id, value, delta, isPercent = false) {
     const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
     const safeDelta = Number.isFinite(Number(delta)) ? Number(delta) : 0;
     valEl.textContent = isPercent ? `${safeValue}%` : safeValue.toLocaleString();
-    const arrow = safeDelta >= 0 ? "↑" : "↓";
-    deltaEl.textContent = `${arrow} ${Math.abs(safeDelta)}%`;
+    const icon = safeDelta >= 0 ? "trending_up" : "trending_down";
+    deltaEl.innerHTML = `<span class="material-symbols-outlined">${icon}</span> ${Math.abs(safeDelta)}%`;
     deltaEl.className = `delta-badge ${safeDelta >= 0 ? "positive" : "negative"}`;
 }
 
@@ -516,6 +558,7 @@ async function fetchTimeSeries(params) {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/timeseries${params}`);
         const data = await res.json();
         renderReachChart(data.data);
+        renderKpiSparkline(data.data);
     } catch (err) { console.error(err); }
 }
 
@@ -535,7 +578,7 @@ async function fetchPlatformDistribution() {
         renderPlatformChart(platforms, values, platforms.map(p => (PLATFORM_META[p] || { label: p }).label));
 
         const totalEl = document.getElementById("platform-distribution-total");
-        if (totalEl) totalEl.textContent = total.toLocaleString();
+        if (totalEl) totalEl.textContent = platforms.length;
 
         if (legend) {
             legend.innerHTML = platforms.map((p, i) => {
@@ -582,32 +625,33 @@ async function fetchPlatforms(params) {
             const isConnected = acc.status === "connected";
             const followers = isConnected ? Number(acc.followers).toLocaleString() : "—";
             const lastSync = acc.last_synced ? timeAgo(acc.last_synced) : (isConnected ? "Syncing..." : "Never synced");
+            const statusText = isConnected ? "Connected" : (acc.status === "pending" ? "Authorization needed" : "Disconnected");
             const actionBtn = isConnected
-                ? `<button class="px-4 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/10 transition-colors" data-action="disconnect" data-id="${acc.id}">Disconnect</button>`
-                : `<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity" data-action="authorize" data-platform="${escapeHtml(acc.platform)}" data-id="${acc.id}">${acc.status === "pending" ? "Continue authorization" : "Reconnect"}</button>`;
+                ? `<button class="w-full px-4 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/10 transition-colors" data-action="disconnect" data-id="${acc.id}">Disconnect</button>`
+                : `<button class="w-full px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity" data-action="authorize" data-platform="${escapeHtml(acc.platform)}" data-id="${acc.id}">${acc.status === "pending" ? "Continue authorization" : "Reconnect"}</button>`;
             return `
-                <div class="glass-card rounded-xl p-5 flex flex-col gap-4 hover:bg-white/5 transition-colors ${meta.className}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center gap-3">
+                <div class="glass-card rounded-xl p-[20px] flex flex-col justify-between min-h-[240px] hover:-translate-y-1 transition-transform duration-300 ${meta.className}">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
                             <div class="platform-icon"><span class="material-symbols-outlined">${meta.icon}</span></div>
+                            <span class="status-badge ${isConnected ? "connected" : "warn"}">${statusText}</span>
+                        </div>
+                        <h3 class="text-lg font-semibold">${escapeHtml(meta.label)}</h3>
+                        <p class="text-sm text-on-surface-variant mt-1">${escapeHtml(acc.display_name)}</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-white/5">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
                             <div>
-                                <h3 class="font-semibold">${escapeHtml(meta.label)}</h3>
-                                <p class="text-sm text-on-surface-variant mt-0.5">${escapeHtml(acc.display_name)}</p>
+                                <p class="text-[10px] uppercase tracking-widest text-outline font-semibold">14d Reach</p>
+                                <p class="text-primary text-lg font-bold font-mono mt-1">${followers}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase tracking-widest text-outline font-semibold">Last Sync</p>
+                                <p class="text-sm text-on-surface-variant mt-1">${escapeHtml(lastSync)}</p>
                             </div>
                         </div>
-                        <span class="status-badge ${isConnected ? "connected" : "warn"}">${isConnected ? "Connected" : (acc.status === "pending" ? "Authorization needed" : "Disconnected")}</span>
+                        ${actionBtn}
                     </div>
-                    <div class="grid grid-cols-2 gap-3 text-center">
-                        <div class="rounded-lg bg-surface-container-lowest/60 border border-white/5 py-2">
-                            <div class="text-sm font-bold">${followers}</div>
-                            <div class="text-[10px] uppercase tracking-widest text-outline mt-0.5">14d Reach</div>
-                        </div>
-                        <div class="rounded-lg bg-surface-container-lowest/60 border border-white/5 py-2">
-                            <div class="text-sm font-bold">${escapeHtml(lastSync)}</div>
-                            <div class="text-[10px] uppercase tracking-widest text-outline mt-0.5">Last Sync</div>
-                        </div>
-                    </div>
-                    <div class="mt-auto flex gap-2">${actionBtn}</div>
                 </div>`;
         }).join("");
     } catch (err) { list.innerHTML = `<div class="col-span-full text-center text-sm text-on-surface-variant py-12">Failed to load platforms.</div>`; }
@@ -645,28 +689,66 @@ function beginPlatformAuthorization(platform) {
 
 async function fetchTopContent(params) {
     const tbody = document.getElementById("content-table");
-    tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center"><div class="spinner mx-auto"></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center"><div class="spinner mx-auto"></div></td></tr>`;
     try {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/top-content${params}`);
         const data = await res.json();
         state.lastContentData = data;
         if (!data.length || (data.length === 1 && !data[0].platform)) {
-            tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-10 text-center text-sm text-on-surface-variant">No content yet — connect a platform to get started.</td></tr>`;
+            if (contentCountEl) contentCountEl.textContent = "No content yet — connect a platform to get started.";
+            tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-sm text-on-surface-variant">No content yet — connect a platform to get started.</td></tr>`;
             return;
         }
-        tbody.innerHTML = data.map(item => {
-            const badge = platformBadge(item.platform);
-            return `
-                <tr class="content-row hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                    <td class="text-sm font-semibold group-hover:text-primary transition-colors">${escapeHtml(item.title)}</td>
-                    <td>${badge}</td>
-                    <td class="text-right text-sm font-semibold text-primary">${item.engagement}%</td>
-                    <td class="text-right text-sm font-mono text-on-surface-variant">${Number(item.reach).toLocaleString()}</td>
-                </tr>`;
-        }).join("");
+        renderContentRows(data);
     } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-8 text-center text-sm text-on-surface-variant">Failed to load content.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-sm text-on-surface-variant">Failed to load content.</td></tr>`;
     }
+}
+
+function renderContentRows(items) {
+    const tbody = document.getElementById("content-table");
+    const filtered = items.filter(item => contentPlatformFilter === "all" || item.platform === contentPlatformFilter);
+    if (contentCountEl) {
+        contentCountEl.textContent = filtered.length
+            ? `Showing ${filtered.length} of ${items.length} entries`
+            : "No content matches the current filter";
+    }
+    if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-10 text-center text-sm text-on-surface-variant">No content matches the current filter.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = filtered.map(item => {
+        const badge = platformBadge(item.platform);
+        return `
+            <tr class="content-row hover:bg-white/[0.03] transition-colors group cursor-pointer">
+                <td>
+                    <div class="flex items-center gap-3">
+                        ${platformIconBlock(item.platform)}
+                        <p class="text-sm font-semibold text-on-surface line-clamp-1 group-hover:text-primary transition-colors">${escapeHtml(item.title)}</p>
+                    </div>
+                </td>
+                <td>${badge}</td>
+                <td class="text-sm text-on-surface-variant whitespace-nowrap">${formatDate(item.recorded_at)}</td>
+                <td class="text-right text-sm font-semibold text-primary">${item.engagement}%</td>
+                <td class="text-right text-sm font-mono text-on-surface-variant">${Number(item.reach).toLocaleString()}</td>
+            </tr>`;
+    }).join("");
+}
+
+function platformIconBlock(platform) {
+    const map = {
+        youtube: { icon: "play_circle", cls: "content-icon-youtube" },
+        instagram: { icon: "photo_camera", cls: "content-icon-instagram" },
+        tiktok: { icon: "music_note", cls: "content-icon-tiktok" }
+    };
+    const m = map[platform] || { icon: "analytics", cls: "" };
+    return `<div class="content-thumb ${m.cls}"><span class="material-symbols-outlined">${m.icon}</span></div>`;
+}
+
+function formatDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function platformBadge(platform) {
@@ -693,6 +775,22 @@ async function fetchAudience(params) {
 }
 
 // Charts
+function renderKpiSparkline(points) {
+    const svg = document.getElementById("kpi-reach-sparkline");
+    if (!svg || !points || !points.length) return;
+    const vals = points.map(p => p.value);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const range = (max - min) || 1;
+    const step = vals.length > 1 ? 100 / (vals.length - 1) : 0;
+    const d = vals.map((v, i) => {
+        const x = i * step;
+        const y = 28 - ((v - min) / range) * 24;
+        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(" ");
+    svg.querySelectorAll("path").forEach(p => p.setAttribute("d", d));
+}
+
 function renderReachChart(points) {
     const ctx = document.getElementById("reachChart").getContext("2d");
     if (state.charts.reach) state.charts.reach.destroy();
@@ -700,6 +798,9 @@ function renderReachChart(points) {
     const grad = ctx.createLinearGradient(0, 0, 0, 320);
     grad.addColorStop(0, "rgba(77, 142, 255, 0.35)");
     grad.addColorStop(1, "rgba(77, 142, 255, 0)");
+
+    const maxValue = Math.max(...points.map(p => p.value), 0);
+    const niceMax = Math.max(25000, Math.ceil(maxValue / 25000) * 25000);
 
     state.charts.reach = new Chart(ctx, {
         type: "line",
@@ -713,10 +814,8 @@ function renderReachChart(points) {
                 backgroundColor: grad,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: "#ffffff",
-                pointBorderColor: "#4d8eff",
-                pointBorderWidth: 2
+                pointRadius: 0,
+                pointHitRadius: 8
             }]
         },
         options: {
@@ -724,7 +823,16 @@ function renderReachChart(points) {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#8c909f" } },
+                y: {
+                    min: 0,
+                    max: niceMax,
+                    grid: { color: "rgba(255,255,255,0.05)" },
+                    ticks: {
+                        stepSize: 25000,
+                        color: "#8c909f",
+                        callback: value => `${Math.round(value / 1000)}k`
+                    }
+                },
                 x: { grid: { display: false }, ticks: { color: "#8c909f" } }
             }
         }
@@ -761,48 +869,7 @@ function renderAudienceCharts(data) {
     const gender = data.demographics.filter(d => d.category === "gender");
     const malePct = (gender.find(g => g.label === "Male")?.value ?? 52) / 100;
     const femalePct = (gender.find(g => g.label === "Female")?.value ?? 48) / 100;
-
-    const ctxAge = document.getElementById("audienceChart").getContext("2d");
-    if (state.charts.audience) state.charts.audience.destroy();
-    state.charts.audience = new Chart(ctxAge, {
-        type: "bar",
-        data: {
-            labels: ageData.map(d => d.label),
-            datasets: [
-                {
-                    label: "Female",
-                    data: ageData.map(d => +(d.value * femalePct).toFixed(1)),
-                    backgroundColor: "rgba(208, 188, 255, 0.85)",
-                    borderColor: "#d0bcff",
-                    borderWidth: 1,
-                    borderRadius: 4
-                },
-                {
-                    label: "Male",
-                    data: ageData.map(d => +(d.value * malePct).toFixed(1)),
-                    backgroundColor: "rgba(173, 198, 255, 0.85)",
-                    borderColor: "#adc6ff",
-                    borderWidth: 1,
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            indexAxis: "y",
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: "top",
-                    labels: { usePointStyle: true, boxWidth: 8, color: "#c2c6d6" }
-                }
-            },
-            scales: {
-                x: { stacked: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#8c909f" } },
-                y: { stacked: true, grid: { display: false }, ticks: { color: "#8c909f" } }
-            }
-        }
-    });
+    renderAgeGenderBars(ageData, malePct, femalePct);
 
     const ctxGeo = document.getElementById("geoChart").getContext("2d");
     if (state.charts.geo) state.charts.geo.destroy();
@@ -812,7 +879,7 @@ function renderAudienceCharts(data) {
             labels: data.geography.map(d => d.label),
             datasets: [{
                 data: data.geography.map(d => d.value),
-                backgroundColor: ["rgba(173,198,255,0.7)", "rgba(208,188,255,0.7)", "rgba(78,222,163,0.7)", "rgba(77,142,255,0.7)", "rgba(87,27,193,0.7)"],
+                backgroundColor: ["rgba(173,198,255,0.7)", "rgba(208,188,255,0.7)", "rgba(78,222,163,0.7)", "rgba(77,142,255,0.7)", "rgba(87,27,193,0.7)", "rgba(255,180,171,0.7)", "rgba(0,165,114,0.7)", "rgba(178,255,89,0.7)"],
                 borderColor: "#19202e",
                 borderWidth: 2
             }]
@@ -835,6 +902,28 @@ function renderAudienceCharts(data) {
             }
         }
     });
+}
+
+function renderAgeGenderBars(ageData, malePct, femalePct) {
+    const container = document.getElementById("age-gender-bars");
+    if (!container) return;
+    if (!ageData.length) {
+        container.innerHTML = `<div class="text-center text-sm text-on-surface-variant">No demographic data yet.</div>`;
+        return;
+    }
+    container.innerHTML = ageData.map(d => {
+        const maleW = (d.value * malePct).toFixed(1);
+        const femaleW = (d.value * femalePct).toFixed(1);
+        return `
+            <div class="flex items-center gap-3 group cursor-pointer">
+                <span class="w-14 text-xs text-on-surface-variant font-mono">${escapeHtml(d.label)}</span>
+                <div class="flex-1 h-3 bg-surface-bright rounded-full overflow-hidden flex">
+                    <div class="h-full bg-primary" style="width: ${maleW}%"></div>
+                    <div class="h-full bg-secondary" style="width: ${femaleW}%"></div>
+                </div>
+                <span class="text-xs text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity font-mono">${Math.round(d.value)}%</span>
+            </div>`;
+    }).join("");
 }
 
 // Toasts
