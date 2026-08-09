@@ -9,7 +9,9 @@ const state = {
     timeframe: "28d",
     charts: {},
     loading: false,
-    isRegistering: false
+    isRegistering: false,
+    connectedPlatforms: [],
+    lastContentData: []
 };
 
 const PLATFORM_META = {
@@ -50,6 +52,23 @@ const userAvatar = document.getElementById("user-avatar");
 const pageTitle = document.getElementById("page-title");
 const pageSubtitle = document.getElementById("page-subtitle");
 const filterBar = document.getElementById("filter-bar");
+const refreshBtn = document.getElementById("refresh-btn");
+const notificationsBtn = document.getElementById("notifications-btn");
+const upgradeProBtn = document.getElementById("upgrade-pro-btn");
+const upgradeProCta = document.getElementById("upgrade-pro-cta");
+const openConnectBtn = document.getElementById("open-connect-btn");
+const connectModal = document.getElementById("connect-modal");
+const consentAuthorizeBtn = document.getElementById("consent-authorize-btn");
+const consentCancelBtn = document.getElementById("consent-cancel-btn");
+const modalCloseBtn = document.getElementById("modal-close-btn");
+const connectDisplayName = document.getElementById("connect-display-name");
+const profileForm = document.getElementById("profile-form");
+const passwordForm = document.getElementById("password-form");
+const deleteAccountBtn = document.getElementById("delete-account-btn");
+const gotoPlatforms = document.getElementById("goto-platforms");
+const exportBtn = document.getElementById("export-btn");
+const globalSearch = document.getElementById("global-search");
+const platformList = document.getElementById("platform-list");
 
 function init() {
     setupEventListeners();
@@ -95,6 +114,39 @@ function setupEventListeners() {
             showInlineNotice("Password reset isn't available yet. Contact support@metrix.com.");
         });
     }
+
+    if (refreshBtn) refreshBtn.addEventListener("click", () => {
+        loadDashboardData();
+        toast("Dashboard refreshed", "success");
+    });
+    if (notificationsBtn) notificationsBtn.addEventListener("click", () => {
+        toast("You're all caught up — no new notifications.", "info");
+    });
+    if (upgradeProBtn) upgradeProBtn.addEventListener("click", () => {
+        toast("Metrix Pro is coming soon. Stay tuned!", "info");
+    });
+    if (upgradeProCta) upgradeProCta.addEventListener("click", () => {
+        toast("Metrix Pro is coming soon. Stay tuned!", "info");
+    });
+
+    if (openConnectBtn) openConnectBtn.addEventListener("click", openConnectModal);
+    if (connectModal) connectModal.addEventListener("click", (e) => {
+        if (e.target.dataset.closeModal !== undefined) closeConnectModal();
+    });
+    if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeConnectModal);
+    if (consentCancelBtn) consentCancelBtn.addEventListener("click", closeConnectModal);
+    if (consentAuthorizeBtn) consentAuthorizeBtn.addEventListener("click", authorizePlatform);
+    document.querySelectorAll(".connect-option").forEach(btn => {
+        btn.addEventListener("click", () => selectPlatform(btn.dataset.platform));
+    });
+    if (platformList) platformList.addEventListener("click", handlePlatformAction);
+
+    if (profileForm) profileForm.addEventListener("submit", handleProfileSubmit);
+    if (passwordForm) passwordForm.addEventListener("submit", handlePasswordSubmit);
+    if (deleteAccountBtn) deleteAccountBtn.addEventListener("click", handleDeleteAccount);
+    if (gotoPlatforms) gotoPlatforms.addEventListener("click", () => switchView("platforms"));
+    if (exportBtn) exportBtn.addEventListener("click", exportContentCSV);
+    if (globalSearch) globalSearch.addEventListener("input", filterContent);
 }
 
 function showInlineNotice(message) {
@@ -139,9 +191,28 @@ function showApp() {
     appContent.classList.remove("hidden");
     if (state.user) {
         userGreeting.textContent = `Welcome back, ${state.user.name}`;
-        const initials = state.user.name.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-        userAvatar.textContent = initials || "M";
+        userAvatar.textContent = initials(state.user.name);
     }
+    refreshConnectedPlatforms();
+}
+
+function initials(name) {
+    return (name || "M").split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "M";
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function timeAgo(iso) {
+    const then = new Date(iso);
+    const secs = Math.floor((Date.now() - then.getTime()) / 1000);
+    if (isNaN(secs) || secs < 60) return "Just now";
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function setLoading(isLoading) {
@@ -197,6 +268,7 @@ async function handleAuthSubmit(e) {
 function handleLogout() {
     state.token = null;
     state.user = null;
+    state.connectedPlatforms = [];
     localStorage.removeItem("metrix_token");
     showLogin();
 }
@@ -220,6 +292,7 @@ function switchView(viewId) {
     pageSubtitle.textContent = meta.subtitle;
     filterBar.classList.toggle("hidden", viewId !== "overview");
 
+    if (viewId === "settings") loadSettings();
     loadDashboardData();
 }
 
@@ -276,7 +349,8 @@ async function fetchTimeSeries(params) {
 }
 
 async function fetchPlatformDistribution() {
-    const platforms = ["youtube", "instagram", "tiktok"];
+    const legend = document.getElementById("platform-legend");
+    const platforms = state.connectedPlatforms.length ? state.connectedPlatforms : ["youtube", "instagram", "tiktok"];
     try {
         const sums = {};
         for (const p of platforms) {
@@ -287,16 +361,31 @@ async function fetchPlatformDistribution() {
         const total = platforms.reduce((a, p) => a + sums[p], 0) || 1;
         const values = platforms.map(p => sums[p]);
 
-        renderPlatformChart(platforms, values, platforms.map(p => PLATFORM_META[p].label));
+        renderPlatformChart(platforms, values, platforms.map(p => (PLATFORM_META[p] || { label: p }).label));
 
         const totalEl = document.getElementById("platform-distribution-total");
         if (totalEl) totalEl.textContent = total.toLocaleString();
 
-        document.querySelectorAll("#platform-legend .legend-row").forEach((row, i) => {
-            const pct = Math.round((values[i] / total) * 100);
-            row.querySelector(".legend-pct").textContent = `${pct}%`;
-        });
+        if (legend) {
+            legend.innerHTML = platforms.map((p, i) => {
+                const meta = PLATFORM_META[p] || { label: p };
+                const color = DISTRIBUTION_COLORS[p] || "#adc6ff";
+                const pct = Math.round((values[i] / total) * 100);
+                return `<div class="legend-row flex items-center justify-between">
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:${color}"></span><span class="text-sm text-on-surface">${meta.label}</span></div>
+                    <span class="legend-pct text-sm text-on-surface-variant font-mono">${pct}%</span>
+                </div>`;
+            }).join("");
+        }
     } catch (err) { console.error(err); }
+}
+
+async function refreshConnectedPlatforms() {
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts`);
+        const data = await res.json();
+        state.connectedPlatforms = data.filter(a => a.status === "connected").map(a => a.platform);
+    } catch (err) { /* silent */ }
 }
 
 async function fetchPlatforms(params) {
@@ -305,32 +394,92 @@ async function fetchPlatforms(params) {
     try {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts${params}`);
         const data = await res.json();
+        state.connectedPlatforms = data.filter(a => a.status === "connected").map(a => a.platform);
         if (!data.length) {
-            list.innerHTML = `<div class="col-span-full text-center text-sm text-on-surface-variant py-12">No connected platforms yet.</div>`;
+            list.innerHTML = `
+                <div class="col-span-full text-center py-16 px-6">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-surface-variant flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-on-surface-variant text-[30px]">hub</span>
+                    </div>
+                    <h3 class="text-lg font-semibold">No platforms connected</h3>
+                    <p class="text-sm text-on-surface-variant mt-1 max-w-sm mx-auto">Connect your first data source to start tracking your cross-platform performance.</p>
+                </div>`;
             return;
         }
         list.innerHTML = data.map(acc => {
             const meta = PLATFORM_META[acc.platform] || { label: acc.platform, icon: "hub", className: "" };
-            const statusClass = acc.status === "connected" ? "connected" : "warn";
-            const statusLabel = acc.status.replace("_", " ");
+            const isConnected = acc.status === "connected";
+            const followers = isConnected ? Number(acc.followers).toLocaleString() : "—";
+            const lastSync = acc.last_synced ? timeAgo(acc.last_synced) : (isConnected ? "Syncing..." : "Never synced");
+            const actionBtn = isConnected
+                ? `<button class="px-4 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/10 transition-colors" data-action="disconnect" data-id="${acc.id}">Disconnect</button>`
+                : `<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity" data-action="reconnect" data-id="${acc.id}">Reconnect</button>`;
             return `
                 <div class="glass-card rounded-xl p-5 flex flex-col gap-4 hover:bg-white/5 transition-colors ${meta.className}">
                     <div class="flex justify-between items-start">
                         <div class="flex items-center gap-3">
                             <div class="platform-icon"><span class="material-symbols-outlined">${meta.icon}</span></div>
                             <div>
-                                <h3 class="font-semibold">${meta.label}</h3>
-                                <p class="text-sm text-on-surface-variant mt-0.5">${acc.display_name}</p>
+                                <h3 class="font-semibold">${escapeHtml(meta.label)}</h3>
+                                <p class="text-sm text-on-surface-variant mt-0.5">${escapeHtml(acc.display_name)}</p>
                             </div>
                         </div>
-                        <span class="status-badge ${statusClass}">${statusLabel}</span>
+                        <span class="status-badge ${isConnected ? "connected" : "warn"}">${isConnected ? "Connected" : "Disconnected"}</span>
                     </div>
-                    <div class="mt-auto">
-                        <button class="w-full px-4 py-2 rounded-lg border border-white/10 text-primary text-xs font-semibold hover:bg-white/5 transition-colors">Manage</button>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="rounded-lg bg-surface-container-lowest/60 border border-white/5 py-2">
+                            <div class="text-sm font-bold">${followers}</div>
+                            <div class="text-[10px] uppercase tracking-widest text-outline mt-0.5">14d Reach</div>
+                        </div>
+                        <div class="rounded-lg bg-surface-container-lowest/60 border border-white/5 py-2">
+                            <div class="text-sm font-bold">${escapeHtml(lastSync)}</div>
+                            <div class="text-[10px] uppercase tracking-widest text-outline mt-0.5">Last Sync</div>
+                        </div>
                     </div>
+                    <div class="mt-auto flex gap-2">${actionBtn}</div>
                 </div>`;
         }).join("");
     } catch (err) { list.innerHTML = `<div class="col-span-full text-center text-sm text-on-surface-variant py-12">Failed to load platforms.</div>`; }
+}
+
+async function handlePlatformAction(e) {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+    if (action === "disconnect") await disconnectPlatform(id, btn);
+    else if (action === "reconnect") await reconnectPlatform(id, btn);
+}
+
+async function disconnectPlatform(id, btn) {
+    if (!confirm("Disconnect this platform? It will stop syncing (historical data is kept).")) return;
+    btn.disabled = true;
+    btn.textContent = "Disconnecting...";
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to disconnect");
+        toast("Platform disconnected", "info");
+        fetchPlatforms();
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Disconnect";
+        toast(err.message, "error");
+    }
+}
+
+async function reconnectPlatform(id, btn) {
+    btn.disabled = true;
+    btn.textContent = "Reconnecting...";
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts/${id}/reconnect`, { method: "POST" });
+        if (!res.ok) throw new Error("Failed to reconnect");
+        toast("Platform reconnected", "success");
+        fetchPlatforms();
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Reconnect";
+        toast(err.message, "error");
+    }
 }
 
 async function fetchTopContent(params) {
@@ -339,11 +488,16 @@ async function fetchTopContent(params) {
     try {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/metrics/top-content${params}`);
         const data = await res.json();
+        state.lastContentData = data;
+        if (!data.length || (data.length === 1 && !data[0].platform)) {
+            tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-10 text-center text-sm text-on-surface-variant">No content yet — connect a platform to get started.</td></tr>`;
+            return;
+        }
         tbody.innerHTML = data.map(item => {
             const badge = platformBadge(item.platform);
             return `
                 <tr class="content-row hover:bg-white/[0.03] transition-colors group cursor-pointer">
-                    <td class="text-sm font-semibold group-hover:text-primary transition-colors">${item.title}</td>
+                    <td class="text-sm font-semibold group-hover:text-primary transition-colors">${escapeHtml(item.title)}</td>
                     <td>${badge}</td>
                     <td class="text-right text-sm font-semibold text-primary">${item.engagement}%</td>
                     <td class="text-right text-sm font-mono text-on-surface-variant">${Number(item.reach).toLocaleString()}</td>
@@ -521,6 +675,238 @@ function renderAudienceCharts(data) {
         }
     });
 }
+
+// Toasts
+function toast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    const icons = { success: "check", error: "error", info: "info" };
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.innerHTML = `
+        <div class="toast-icon"><span class="material-symbols-outlined">${icons[type] || "info"}</span></div>
+        <div class="toast-message">${escapeHtml(message)}</div>`;
+    container.appendChild(el);
+    setTimeout(() => {
+        el.classList.add("hide");
+        setTimeout(() => el.remove(), 320);
+    }, 4500);
+}
+
+// Connect Platform Modal
+let selectedPlatform = null;
+
+function openConnectModal() {
+    if (!connectModal) return;
+    connectModal.classList.remove("hidden");
+    document.getElementById("modal-step-pick").classList.remove("hidden");
+    document.getElementById("modal-step-consent").classList.add("hidden");
+    connectDisplayName.value = "";
+    document.querySelectorAll(".connect-option").forEach(btn => {
+        btn.disabled = state.connectedPlatforms.includes(btn.dataset.platform);
+    });
+}
+
+function closeConnectModal() {
+    if (connectModal) connectModal.classList.add("hidden");
+    selectedPlatform = null;
+}
+
+function selectPlatform(platform) {
+    selectedPlatform = platform;
+    const meta = PLATFORM_META[platform] || { label: platform, icon: "hub" };
+    document.getElementById("consent-platform-name").textContent = meta.label;
+    document.getElementById("consent-platform-icon").innerHTML = `<span class="material-symbols-outlined">${meta.icon}</span>`;
+    document.getElementById("modal-step-pick").classList.add("hidden");
+    document.getElementById("modal-step-consent").classList.remove("hidden");
+}
+
+async function authorizePlatform() {
+    if (!selectedPlatform) return;
+    const btn = consentAuthorizeBtn;
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path></svg> AUTHORIZING...`;
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ platform: selectedPlatform, display_name: connectDisplayName.value.trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to connect platform");
+        const meta = PLATFORM_META[selectedPlatform] || { label: selectedPlatform };
+        closeConnectModal();
+        toast(`${meta.label} connected successfully`, "success");
+        refreshConnectedPlatforms();
+        if (state.currentView === "platforms") fetchPlatforms();
+    } catch (err) {
+        toast(err.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+// Settings
+async function loadSettings() {
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/auth/me`);
+        const user = await res.json();
+        if (!res.ok) throw new Error(user.error || "Failed to load profile");
+        state.user = user;
+        const nameInput = document.getElementById("profile-name");
+        const emailInput = document.getElementById("profile-email");
+        const preview = document.getElementById("settings-name-preview");
+        const avatar = document.getElementById("settings-avatar");
+        if (nameInput) nameInput.value = user.name;
+        if (emailInput) emailInput.value = user.email;
+        if (preview) preview.textContent = user.name;
+        if (avatar) avatar.textContent = initials(user.name);
+        userGreeting.textContent = `Welcome back, ${user.name}`;
+        userAvatar.textContent = initials(user.name);
+    } catch (err) { /* fetchWithAuth already handles 401 */ }
+
+    const apiList = document.getElementById("settings-api-list");
+    if (apiList) {
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts`);
+            const accounts = await res.json();
+            if (!accounts.length) {
+                apiList.innerHTML = `<div class="col-span-full text-sm text-on-surface-variant">No connected platforms.</div>`;
+            } else {
+                apiList.innerHTML = accounts.map(a => {
+                    const meta = PLATFORM_META[a.platform] || { label: a.platform, icon: "hub" };
+                    const ok = a.status === "connected";
+                    return `
+                        <div class="rounded-xl bg-surface-container-low border ${ok ? "border-white/10" : "border-red-500/20"} p-4 flex items-center gap-3">
+                            <div class="platform-icon"><span class="material-symbols-outlined">${meta.icon}</span></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-semibold truncate">${escapeHtml(meta.label)}</div>
+                                <div class="text-xs text-on-surface-variant truncate">${escapeHtml(a.display_name)}</div>
+                            </div>
+                            <span class="status-badge ${ok ? "connected" : "warn"}">${ok ? "Active" : "Disconnected"}</span>
+                        </div>`;
+                }).join("");
+            }
+        } catch (err) {
+            apiList.innerHTML = `<div class="col-span-full text-sm text-on-surface-variant">Failed to load connections.</div>`;
+        }
+    }
+}
+
+async function handleProfileSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById("profile-name").value.trim();
+    if (!name) { toast("Name cannot be empty", "error"); return; }
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/settings/profile`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save profile");
+        state.user = data;
+        toast("Profile updated", "success");
+        loadSettings();
+    } catch (err) {
+        toast(err.message, "error");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function handlePasswordSubmit(e) {
+    e.preventDefault();
+    const cur = document.getElementById("current-password").value;
+    const next = document.getElementById("new-password").value;
+    const confirm = document.getElementById("confirm-password").value;
+    if (next !== confirm) { toast("New passwords do not match", "error"); return; }
+    if (next.length < 8) { toast("Password must be at least 8 characters", "error"); return; }
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/auth/change-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ current_password: cur, new_password: next })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update password");
+        e.target.reset();
+        toast("Password updated", "success");
+    } catch (err) {
+        toast(err.message, "error");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function handleDeleteAccount() {
+    if (!deleteAccountBtn.dataset.armed) {
+        deleteAccountBtn.dataset.armed = "1";
+        const original = deleteAccountBtn.textContent;
+        deleteAccountBtn.textContent = "CLICK AGAIN TO CONFIRM";
+        deleteAccountBtn.classList.add("bg-red-500/30");
+        clearTimeout(handleDeleteAccount._t);
+        handleDeleteAccount._t = setTimeout(() => {
+            delete deleteAccountBtn.dataset.armed;
+            deleteAccountBtn.textContent = original;
+            deleteAccountBtn.classList.remove("bg-red-500/30");
+        }, 4000);
+        return;
+    }
+    delete deleteAccountBtn.dataset.armed;
+    deleteAccountBtn.disabled = true;
+    deleteAccountBtn.textContent = "DELETING...";
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/api/v1/auth/account`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete account");
+        localStorage.removeItem("metrix_token");
+        state.token = null;
+        state.user = null;
+        toast("Account deleted. Sorry to see you go.", "info");
+        setTimeout(() => showLogin(), 900);
+    } catch (err) {
+        deleteAccountBtn.disabled = false;
+        deleteAccountBtn.textContent = "DELETE ACCOUNT";
+        toast(err.message, "error");
+    }
+}
+
+// Export + Search
+function exportContentCSV() {
+    if (!state.lastContentData.length) { toast("No content to export", "info"); return; }
+    const header = "Title,Platform,Engagement (%),Reach\n";
+    const rows = state.lastContentData.map(item => {
+        const label = (PLATFORM_META[item.platform] || { label: item.platform || "—" }).label;
+        return `"${item.title.replace(/"/g, '""')}",${label},${item.engagement},${item.reach}`;
+    }).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "metrix-top-content.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Content exported as CSV", "success");
+}
+
+function filterContent(e) {
+    const term = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("#content-table tr").forEach(row => {
+        const title = row.querySelector("td")?.textContent.toLowerCase() || "";
+        row.style.display = !term || title.includes(term) ? "" : "none";
+    });
+}
+
+// Auto refresh while the dashboard is visible
+setInterval(() => {
+    if (state.token && !appContent.classList.contains("hidden")) loadDashboardData();
+}, 60000);
 
 async function checkHealth() {
     try {
