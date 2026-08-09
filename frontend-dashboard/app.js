@@ -11,6 +11,7 @@ const state = {
     loading: false,
     isRegistering: false,
     isResettingPassword: false,
+    isCompletingPasswordReset: false,
     connectedPlatforms: [],
     lastContentData: []
 };
@@ -48,6 +49,9 @@ const authToggleBtn = document.getElementById("auth-toggle-btn");
 const authNotice = document.getElementById("auth-notice");
 const forgotLink = document.getElementById("forgot-link");
 const nameGroup = document.getElementById("name-group");
+const passwordGroup = document.getElementById("password-group");
+const passwordInput = document.getElementById("password");
+const resetPasswordGroup = document.getElementById("reset-password-group");
 const userGreeting = document.getElementById("user-greeting");
 const userAvatar = document.getElementById("user-avatar");
 const pageTitle = document.getElementById("page-title");
@@ -73,6 +77,13 @@ const platformList = document.getElementById("platform-list");
 
 function init() {
     setupEventListeners();
+    const resetToken = new URLSearchParams(window.location.search).get("token");
+    const resetEmail = new URLSearchParams(window.location.search).get("email");
+    if (resetToken && resetEmail) {
+        showPasswordResetConfirmation(resetToken, resetEmail);
+        checkHealth();
+        return;
+    }
     if (state.token) {
         showApp();
         loadDashboardData();
@@ -161,6 +172,12 @@ function setupEventListeners() {
     if (gotoPlatforms) gotoPlatforms.addEventListener("click", () => switchView("platforms"));
     if (exportBtn) exportBtn.addEventListener("click", exportContentCSV);
     if (globalSearch) globalSearch.addEventListener("input", filterContent);
+    window.addEventListener("message", (event) => {
+        if (event.data?.type !== "metrix-oauth-complete") return;
+        refreshConnectedPlatforms();
+        if (state.currentView === "platforms") fetchPlatforms();
+        toast(`${PLATFORM_META[event.data.platform]?.label || "Platform"} connected`, "success");
+    });
 }
 
 function showInlineNotice(message) {
@@ -174,18 +191,23 @@ function showInlineNotice(message) {
 function toggleAuthMode() {
     state.isRegistering = !state.isRegistering;
     state.isResettingPassword = false;
+    state.isCompletingPasswordReset = false;
     if (state.isRegistering) {
         if (authTitle) authTitle.textContent = "Create Account";
         if (authBtnLabel) authBtnLabel.textContent = "CREATE ACCOUNT";
         authToggleBtn.innerHTML = `Already have an account? <span class="text-primary font-semibold">Sign In</span>`;
-        authToggleBtn.onclick = showLoginForm;
         nameGroup.classList.remove("hidden");
+        passwordGroup.classList.remove("hidden");
+        resetPasswordGroup.classList.add("hidden");
+        if (passwordInput) passwordInput.disabled = false;
     } else {
         if (authTitle) authTitle.textContent = "Sign In";
         if (authBtnLabel) authBtnLabel.textContent = "SIGN IN";
         authToggleBtn.innerHTML = `Don't have an account? <span class="text-primary font-semibold">Create Account</span>`;
-        authToggleBtn.onclick = toggleAuthMode;
         nameGroup.classList.add("hidden");
+        passwordGroup.classList.remove("hidden");
+        resetPasswordGroup.classList.add("hidden");
+        if (passwordInput) passwordInput.disabled = false;
     }
     const authNotice = document.getElementById("auth-notice");
     if (authNotice) authNotice.classList.add("hidden");
@@ -196,12 +218,13 @@ function setAuthLoading(isLoading) {
     authSubmitBtn.disabled = isLoading;
     authSpinner.classList.toggle("hidden", !isLoading);
     authBtnLabel.textContent = isLoading
-        ? (state.isRegistering ? "CREATING ACCOUNT..." : "SIGNING IN...")
-        : (state.isRegistering ? "CREATE ACCOUNT" : "SIGN IN");
+        ? (state.isCompletingPasswordReset ? "RESETTING PASSWORD..." : state.isResettingPassword ? "SENDING RESET LINK..." : state.isRegistering ? "CREATING ACCOUNT..." : "SIGNING IN...")
+        : (state.isCompletingPasswordReset ? "RESET PASSWORD" : state.isResettingPassword ? "SEND RESET LINK" : state.isRegistering ? "CREATE ACCOUNT" : "SIGN IN");
 }
 
 function showLogin() {
     state.isResettingPassword = false;
+    state.isCompletingPasswordReset = false;
     loginOverlay.classList.remove("hidden");
     appContent.classList.add("hidden");
 }
@@ -214,6 +237,9 @@ function showForgotPassword() {
     if (authTitle) authTitle.textContent = "Reset Password";
     if (authBtnLabel) authBtnLabel.textContent = "SEND RESET LINK";
     if (nameGroup) nameGroup.classList.add("hidden");
+    if (passwordGroup) passwordGroup.classList.remove("hidden");
+    if (resetPasswordGroup) resetPasswordGroup.classList.add("hidden");
+    if (passwordInput) passwordInput.disabled = true;
     if (authToggleBtn) {
         authToggleBtn.innerHTML = `<span class="text-primary font-semibold">Back to Sign In</span>`;
     }
@@ -227,14 +253,39 @@ function showForgotPassword() {
 function showLoginForm() {
     state.isRegistering = false;
     state.isResettingPassword = false;
+    state.isCompletingPasswordReset = false;
     const authTitle = document.getElementById("auth-title");
     const authBtnLabel = document.getElementById("auth-btn-label");
     const authNotice = document.getElementById("auth-notice");
     if (authTitle) authTitle.textContent = "Sign In";
     if (authBtnLabel) authBtnLabel.textContent = "SIGN IN";
     if (nameGroup) nameGroup.classList.add("hidden");
+    if (passwordGroup) passwordGroup.classList.remove("hidden");
+    if (resetPasswordGroup) resetPasswordGroup.classList.add("hidden");
+    if (passwordInput) passwordInput.disabled = false;
     if (authToggleBtn) authToggleBtn.innerHTML = `Don't have an account? <span class="text-primary font-semibold">Create Account</span>`;
     if (authNotice) authNotice.classList.add("hidden");
+}
+
+function showPasswordResetConfirmation(token, email) {
+    showLogin();
+    state.isRegistering = false;
+    state.isResettingPassword = false;
+    state.isCompletingPasswordReset = true;
+    state.resetToken = token;
+    const emailInput = document.getElementById("email");
+    if (emailInput) {
+        emailInput.value = email;
+        emailInput.readOnly = true;
+    }
+    if (authTitle) authTitle.textContent = "Choose a new password";
+    if (authBtnLabel) authBtnLabel.textContent = "RESET PASSWORD";
+    if (nameGroup) nameGroup.classList.add("hidden");
+    if (passwordGroup) passwordGroup.classList.add("hidden");
+    if (resetPasswordGroup) resetPasswordGroup.classList.remove("hidden");
+    if (passwordInput) passwordInput.disabled = true;
+    if (forgotLink) forgotLink.classList.add("hidden");
+    if (authToggleBtn) authToggleBtn.classList.add("hidden");
 }
 
 function showApp() {
@@ -285,6 +336,10 @@ async function fetchWithAuth(url, options = {}) {
 
 async function handleAuthSubmit(e) {
     e.preventDefault();
+    if (state.isCompletingPasswordReset) {
+        await handleResetConfirmation();
+        return;
+    }
     const authTitle = document.getElementById("auth-title");
     if (authTitle && authTitle.textContent === "Reset Password") {
         await handleResetRequest();
@@ -318,6 +373,33 @@ async function handleAuthSubmit(e) {
         loadDashboardData();
     } catch (err) {
         showInlineNotice("Can't reach the backend. Check that the API is running.");
+    } finally {
+        setAuthLoading(false);
+    }
+}
+
+async function handleResetConfirmation() {
+    const newPassword = document.getElementById("reset-new-password").value;
+    const confirmPassword = document.getElementById("reset-confirm-password").value;
+    if (newPassword.length < 8) return showInlineNotice("Password must be at least 8 characters.");
+    if (newPassword !== confirmPassword) return showInlineNotice("Passwords do not match.");
+    setAuthLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/reset-password/confirm`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: document.getElementById("email").value, token: state.resetToken, new_password: newPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not reset password.");
+        window.history.replaceState({}, "", "/");
+        document.getElementById("email").readOnly = false;
+        if (forgotLink) forgotLink.classList.remove("hidden");
+        if (authToggleBtn) authToggleBtn.classList.remove("hidden");
+        showLoginForm();
+        toast("Password reset. You can now sign in.", "success");
+    } catch (err) {
+        showInlineNotice(err.message);
     } finally {
         setAuthLoading(false);
     }
@@ -499,7 +581,7 @@ async function fetchPlatforms(params) {
             const lastSync = acc.last_synced ? timeAgo(acc.last_synced) : (isConnected ? "Syncing..." : "Never synced");
             const actionBtn = isConnected
                 ? `<button class="px-4 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/10 transition-colors" data-action="disconnect" data-id="${acc.id}">Disconnect</button>`
-                : `<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity" data-action="reconnect" data-id="${acc.id}">Reconnect</button>`;
+                : `<button class="px-4 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold tracking-wider hover:opacity-90 transition-opacity" data-action="authorize" data-platform="${escapeHtml(acc.platform)}" data-id="${acc.id}">${acc.status === "pending" ? "Continue authorization" : "Reconnect"}</button>`;
             return `
                 <div class="glass-card rounded-xl p-5 flex flex-col gap-4 hover:bg-white/5 transition-colors ${meta.className}">
                     <div class="flex justify-between items-start">
@@ -510,7 +592,7 @@ async function fetchPlatforms(params) {
                                 <p class="text-sm text-on-surface-variant mt-0.5">${escapeHtml(acc.display_name)}</p>
                             </div>
                         </div>
-                        <span class="status-badge ${isConnected ? "connected" : "warn"}">${isConnected ? "Connected" : "Disconnected"}</span>
+                        <span class="status-badge ${isConnected ? "connected" : "warn"}">${isConnected ? "Connected" : (acc.status === "pending" ? "Authorization needed" : "Disconnected")}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-3 text-center">
                         <div class="rounded-lg bg-surface-container-lowest/60 border border-white/5 py-2">
@@ -534,7 +616,7 @@ async function handlePlatformAction(e) {
     const action = btn.dataset.action;
     const id = btn.dataset.id;
     if (action === "disconnect") await disconnectPlatform(id, btn);
-    else if (action === "reconnect") await reconnectPlatform(id, btn);
+    else if (action === "authorize") beginPlatformAuthorization(btn.dataset.platform);
 }
 
 async function disconnectPlatform(id, btn) {
@@ -553,19 +635,9 @@ async function disconnectPlatform(id, btn) {
     }
 }
 
-async function reconnectPlatform(id, btn) {
-    btn.disabled = true;
-    btn.textContent = "Reconnecting...";
-    try {
-        const res = await fetchWithAuth(`${API_BASE}/api/v1/platform-accounts/${id}/reconnect`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to reconnect");
-        toast("Platform reconnected", "success");
-        fetchPlatforms();
-    } catch (err) {
-        btn.disabled = false;
-        btn.textContent = "Reconnect";
-        toast(err.message, "error");
-    }
+function beginPlatformAuthorization(platform) {
+    openConnectModal();
+    selectPlatform(platform);
 }
 
 async function fetchTopContent(params) {
@@ -817,17 +889,13 @@ async function authorizePlatform() {
         const res = await fetchWithAuth(`${API_BASE}/api/v1/oauth/connect`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform: selectedPlatform })
+            body: JSON.stringify({ platform: selectedPlatform, display_name: connectDisplayName.value.trim() })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to connect platform");
         closeConnectModal();
         toast("Redirecting to OAuth provider...", "info");
         window.open(data.url, "_blank");
-        setTimeout(() => {
-            refreshConnectedPlatforms();
-            if (state.currentView === "platforms") fetchPlatforms();
-        }, 3000);
     } catch (err) {
         toast(err.message, "error");
     } finally {

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"metrix/api-backend/internal/db"
 )
@@ -22,7 +23,12 @@ func GetAudienceInsights(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	insights, err := db.GetAudienceInsightsForUser(r.Context(), userID)
+	days, err := timeframeDays(r)
+	if err != nil {
+		http.Error(w, `{"error":"timeframe must be one of 7d, 28d, or 90d"}`, http.StatusBadRequest)
+		return
+	}
+	insights, err := db.GetAudienceInsightsForUser(r.Context(), userID, time.Now().AddDate(0, 0, -days))
 	if err != nil {
 		http.Error(w, `{"error":"Failed to fetch audience insights"}`, http.StatusInternalServerError)
 		return
