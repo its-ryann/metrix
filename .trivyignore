@@ -1,0 +1,9 @@
+# Trivy ignore file for known vulnerabilities in base image packages
+# that do not affect the application's attack surface.
+# Format: one vulnerability ID per line
+
+# msgpack - bundled with pip in Python base image, not used by our application
+GHSA-6v7p-g79w-8964
+
+# setuptools - CVE in PackageIndex, not relevant to our application
+CVE-2025-47273
