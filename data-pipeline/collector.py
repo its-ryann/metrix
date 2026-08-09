@@ -3,7 +3,6 @@ import time
 import random
 import logging
 import psycopg2
-from datetime import date
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,7 +11,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("metrix-collector")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgres://metrix:metrix_password@postgres:5432/metrix?sslmode=disable")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgres://metrix:metrix_password@postgres:5432/metrix?sslmode=disable"
+)
 
 CONTENT_TITLE_POOL = {
     "youtube": {
@@ -122,14 +124,17 @@ def insert_timeseries(conn, user_id, platform, reach):
 def insert_content_items(conn, user_id, platform, pool):
     titles = random.sample(pool["titles"], min(3, len(pool["titles"])))
     for title in titles:
-        reach = pool["base_reach"] + random.randint(-pool["reach_variance"] // 2, pool["reach_variance"])
+        half_var = pool["reach_variance"] // 2
+        reach = pool["base_reach"] + random.randint(-half_var, pool["reach_variance"])
         engagement = round(random.uniform(2.5, 12.0), 2)
         try:
             with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO content_items (user_id, platform, title, engagement, reach, recorded_at)
-                    VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)
-                """, (user_id, platform, title, engagement, reach))
+                cur.execute(
+                    "INSERT INTO content_items "
+                    "(user_id, platform, title, engagement, reach, recorded_at) "
+                    "VALUES (%s, %s, %s, %s, %s, CURRENT_DATE)",
+                    (user_id, platform, title, engagement, reach),
+                )
         except Exception as e:
             logger.error(f"Failed to insert content item '{title}': {e}")
             conn.rollback()
@@ -198,7 +203,8 @@ def simulate_and_persist(conn, user_id):
             if platform not in CONTENT_TITLE_POOL:
                 continue
             pool = CONTENT_TITLE_POOL[platform]
-            reach = pool["base_reach"] + random.randint(-pool["reach_variance"] // 2, pool["reach_variance"])
+            half_var = pool["reach_variance"] // 2
+            reach = pool["base_reach"] + random.randint(-half_var, pool["reach_variance"])
             engagement = round(random.uniform(2.5, 9.5), 2)
             growth = random.randint(50, 400)
 
@@ -212,10 +218,12 @@ def simulate_and_persist(conn, user_id):
         avg_engagement = round(total_engagement / len(platforms), 2)
 
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO metrics_summary (user_id, total_reach, avg_engagement, follower_growth, recorded_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (user_id, total_reach, avg_engagement, total_growth))
+            cur.execute(
+                "INSERT INTO metrics_summary "
+                "(user_id, total_reach, avg_engagement, follower_growth, recorded_at) "
+                "VALUES (%s, %s, %s, %s, NOW())",
+                (user_id, total_reach, avg_engagement, total_growth),
+            )
 
         generate_audience_data(conn, user_id, platforms)
 

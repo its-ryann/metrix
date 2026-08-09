@@ -1,4 +1,3 @@
-import pytest
 import os
 from collector import (
     get_db_connection,
