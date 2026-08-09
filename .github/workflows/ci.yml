@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest mypy
+          pip install flake8 pytest mypy psycopg2-binary
       - name: Lint (flake8)
         run: |
           flake8 . \
@@ -68,9 +68,9 @@ jobs:
             --show-source \
             --statistics
       - name: Type check (mypy)
-        run: mypy . --ignore-missing-imports || true
+        run: mypy . --ignore-missing-imports
       - name: Test
-        run: pytest -v || true
+        run: pytest -v
 
   # 4. Frontend CI (JavaScript)
   frontend-ci:
@@ -86,7 +86,7 @@ jobs:
         with:
           node-version: '20'
       - name: Syntax check
-        run: npx -y acorn app.js 2>&1 || true
+        run: npx -y acorn app.js 2>&1
 
   # 5. Filesystem Scanning (Trivy)
   filesystem-scan:
