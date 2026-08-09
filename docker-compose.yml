@@ -20,6 +20,8 @@ services:
     build: ./api-backend
     environment:
       PORT: "8080"
+      ENV: "local"
+      DEMO_MODE: "true"
       DATABASE_URL: "postgres://metrix:metrix_password@postgres:5432/metrix?sslmode=disable"
       JWT_SECRET: "metrix-super-secret-jwt-key-2026"
       OAUTH_STATE_SECRET: "metrix-oauth-state-secret-2026"

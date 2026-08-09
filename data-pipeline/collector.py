@@ -189,6 +189,11 @@ def generate_audience_data(conn, user_id, platforms):
 
 
 def simulate_and_persist(conn, user_id):
+    with conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM content_items WHERE recorded_at < NOW() - INTERVAL '90 days'"
+        )
+
     platforms = get_connected_platforms(conn, user_id)
     if not platforms:
         logger.warning(f"No connected platforms for user {user_id}; skipping ingestion.")

@@ -73,15 +73,23 @@ CREATE TABLE IF NOT EXISTS content_items (
 );
 
 -- 8. Audience insights — demographic + geography breakdown per user
+DROP TABLE IF EXISTS audience_insights; -- fresh dev DB only; use the ALTER migration on existing DBs
 CREATE TABLE IF NOT EXISTS audience_insights (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     category VARCHAR(50) NOT NULL,
     label VARCHAR(100) NOT NULL,
     value NUMERIC(5,2) NOT NULL DEFAULT 0.0,
-    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (user_id, category, label, recorded_at)
+    recorded_at DATE NOT NULL DEFAULT CURRENT_DATE
 );
+
+-- Unique per (user, category, label, calendar day) so the ON CONFLICT
+-- (user_id, category, label, DATE(recorded_at)) upserts used by the API and
+-- collector resolve to a real index instead of failing at planning time.
+-- recorded_at is a DATE (not TIMESTAMPTZ) because DATE(timestamptz) is
+-- timezone-dependent and therefore not immutable, so it cannot be indexed.
+CREATE UNIQUE INDEX IF NOT EXISTS audience_insights_user_cat_label_day_idx
+    ON audience_insights (user_id, category, label, DATE(recorded_at));
 
 -- These indexes also make deployments against an existing database compatible
 -- with the upsert operations used by the API and collector.
